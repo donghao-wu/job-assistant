@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>简历优化助手</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    #resultContent h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e40af;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid #e0e7ff;
+    }
+    #resultContent ul, #resultContent ol {
+      margin: 0.5rem 0 1rem 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    #resultContent li {
+      padding: 0.4rem 0.75rem;
+      margin-bottom: 0.4rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    #resultContent li:has-text, #resultContent li {
+      background: #f8fafc;
+    }
+    #resultContent p {
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: #374151;
+      background: #f0f9ff;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border-left: 3px solid #60a5fa;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div class="max-w-3xl mx-auto py-12 px-4">
+
+    <!-- Nav -->
+    <div class="flex justify-center gap-2 mb-8">
+      <a href="/" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">简历优化</a>
+      <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <h1 class="text-3xl font-bold text-gray-800">简历优化助手</h1>
+      <p class="text-gray-500 mt-2">上传简历 + 粘贴JD，AI 帮你针对性优化</p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-2xl shadow-sm p-8 space-y-6">
+
+      <!-- 上传简历 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">上传简历</label>
+        <div id="dropzone"
+          class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
+          onclick="document.getElementById('fileInput').click()">
+          <p class="text-gray-400 text-sm" id="fileLabel">点击上传 PDF 或 Word 文件</p>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx" class="hidden"
+          onchange="handleFile(this)"/>
+      </div>
+
+      <!-- JD输入 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">目标岗位 JD</label>
+        <textarea id="jdInput" rows="8"
+          class="w-full border border-gray-200 rounded-xl p-4 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+          placeholder="把招聘要求粘贴到这里..."></textarea>
+      </div>
+
+      <!-- 提交按钮 -->
+      <button onclick="submit()"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-xl transition-colors">
+        开始分析
+      </button>
+    </div>
+
+    <!-- 结果 -->
+    <div id="resultBox" class="hidden mt-8 bg-white rounded-2xl shadow-sm p-8">
+      <div id="loading" class="text-center py-8">
+        <div class="inline-block w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-gray-500 mt-3 text-sm">AI 分析中，请稍候...</p>
+      </div>
+      <div id="resultContent" class="hidden prose prose-sm max-w-none text-gray-700"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let selectedFile = null;
+
+    function handleFile(input) {
+      selectedFile = input.files[0];
+      if (selectedFile) {
+        document.getElementById('fileLabel').textContent = '✅ ' + selectedFile.name;
+        document.getElementById('fileLabel').classList.add('text-blue-500');
+      }
+    }
+
+    async function submit() {
+      if (!selectedFile) {
+        alert('请先上传简历文件');
+        return;
+      }
+      const jd = document.getElementById('jdInput').value.trim();
+      if (!jd) {
+        alert('请粘贴目标岗位JD');
+        return;
+      }
+
+      const resultBox = document.getElementById('resultBox');
+      const loading = document.getElementById('loading');
+      const resultContent = document.getElementById('resultContent');
+
+      resultBox.classList.remove('hidden');
+      loading.classList.remove('hidden');
+      resultContent.classList.add('hidden');
+
+      resultBox.scrollIntoView({ behavior: 'smooth' });
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('jd', jd);
+
+      try {
+        const res = await fetch('/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        loading.classList.add('hidden');
+        resultContent.classList.remove('hidden');
+        resultContent.innerHTML = marked.parse(data.result);
+        // 给不同类型条目上色
+        resultContent.querySelectorAll('li').forEach(li => {
+          const text = li.textContent;
+          if (text.startsWith('✅')) {
+            li.style.background = '#f0fdf4';
+            li.style.borderLeft = '3px solid #4ade80';
+            li.style.paddingLeft = '0.75rem';
+          } else if (text.startsWith('📝')) {
+            li.style.background = '#eff6ff';
+            li.style.borderLeft = '3px solid #60a5fa';
+            li.style.paddingLeft = '0.75rem';
+          } else if (text.startsWith('⚠️')) {
+            li.style.background = '#fff7ed';
+            li.style.borderLeft = '3px solid #fb923c';
+            li.style.paddingLeft = '0.75rem';
+          }
+        });
+      } catch (e) {
+        loading.classList.add('hidden');
+        resultContent.classList.remove('hidden');
+        resultContent.innerHTML = '<p class="text-red-500">出错了，请检查服务是否正常运行。</p>';
+      }
+    }
+  </script>
+
+</body>
+</html>

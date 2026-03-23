@@ -1,0 +1,5 @@
+.env
+profile.db
+response.json
+__pycache__/
+*.pyc

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>我的信息档案</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e40af;
+      border-bottom: 2px solid #e0e7ff;
+      padding-bottom: 0.4rem;
+      margin-bottom: 1rem;
+    }
+    .card { background: #f8fafc; border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem; }
+    .label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.2rem; }
+    .value { font-size: 0.9rem; color: #111827; }
+    .tag { display: inline-block; background: #dbeafe; color: #1d4ed8; border-radius: 9999px; padding: 0.2rem 0.75rem; font-size: 0.8rem; margin: 0.2rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div class="max-w-3xl mx-auto py-12 px-4">
+
+  <!-- Nav -->
+  <div class="flex justify-center gap-2 mb-8">
+    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
+    <a href="/profile-page" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">我的档案</a>
+  </div>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">我的信息档案</h1>
+      <p class="text-gray-400 text-sm mt-1">从简历自动解析，可手动编辑</p>
+    </div>
+  </div>
+
+  <!-- 上传解析入口 -->
+  <div id="uploadSection" class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+    <p class="text-sm font-medium text-gray-700 mb-3">上传简历自动解析档案</p>
+    <div class="flex gap-3">
+      <input type="file" id="resumeFile" accept=".pdf,.docx"
+        class="block text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"/>
+      <button onclick="parseResume()"
+        class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-5 py-2 rounded-lg transition-colors whitespace-nowrap">
+        解析简历
+      </button>
+    </div>
+    <div id="parseStatus" class="mt-2 text-sm text-gray-400"></div>
+  </div>
+
+  <!-- 档案内容 -->
+  <div id="profileContent" class="hidden space-y-6">
+
+    <!-- 基本信息 -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="section-title">基本信息</div>
+      <div class="grid grid-cols-2 gap-4" id="basicInfo"></div>
+    </div>
+
+    <!-- 教育经历 -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="section-title">教育经历</div>
+      <div id="educationList"></div>
+    </div>
+
+    <!-- 工作/实习经历 -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="section-title">工作 / 实习经历</div>
+      <div id="experienceList"></div>
+    </div>
+
+    <!-- 项目 / 课外活动 -->
+    <div id="activitiesSection" class="bg-white rounded-2xl shadow-sm p-6 hidden">
+      <div class="section-title">项目 / Other Activities</div>
+      <div id="activitiesList"></div>
+    </div>
+
+    <!-- 技能 & 语言 -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="section-title">技能 & 语言</div>
+      <div id="skillsSection"></div>
+    </div>
+
+    <!-- 奖项 -->
+    <div id="awardsSection" class="bg-white rounded-2xl shadow-sm p-6 hidden">
+      <div class="section-title">奖项荣誉</div>
+      <div id="awardsList"></div>
+    </div>
+
+  </div>
+
+  <!-- 空状态 -->
+  <div id="emptyState" class="text-center py-16 text-gray-400">
+    <p class="text-4xl mb-3">📄</p>
+    <p class="text-sm">上传简历后，档案会自动生成</p>
+  </div>
+
+</div>
+
+<script>
+  async function parseResume() {
+    const file = document.getElementById('resumeFile').files[0];
+    if (!file) { alert('请先选择简历文件'); return; }
+
+    const status = document.getElementById('parseStatus');
+    status.textContent = '解析中，请稍候...';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/parse-resume', { method: 'POST', body: formData });
+      const data = await res.json();
+      status.textContent = '✅ 解析完成';
+      renderProfile(data.data);
+    } catch (e) {
+      status.textContent = '❌ 解析失败，请重试';
+    }
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await fetch('/profile');
+      if (res.status === 404) return;
+      const data = await res.json();
+      renderProfile(data.data);
+    } catch (e) {}
+  }
+
+  function renderProfile(d) {
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('profileContent').classList.remove('hidden');
+
+    // 基本信息
+    const basic = d.basic || {};
+    const fields = [
+      ['姓名', basic.name], ['邮箱', basic.email],
+      ['手机', basic.phone], ['城市', basic.location],
+      ['主页', basic.linkedin]
+    ];
+    document.getElementById('basicInfo').innerHTML = fields
+      .filter(([, v]) => v)
+      .map(([l, v]) => `<div><div class="label">${l}</div><div class="value">${v}</div></div>`)
+      .join('');
+
+    function renderBullets(item) {
+      // 兼容新格式 bullets[] 和旧格式 description 字符串
+      if (item.bullets && item.bullets.length > 0) {
+        return `<ul class="mt-2 space-y-1">${item.bullets.map(b =>
+          `<li class="text-xs text-gray-500 flex gap-2"><span class="text-blue-300 mt-0.5">•</span><span>${b}</span></li>`
+        ).join('')}</ul>`;
+      }
+      if (item.description) {
+        // 把长段落按句号/分号拆成 bullet points
+        const sentences = item.description.split(/(?<=[.。;；])\s+/).filter(s => s.trim().length > 5);
+        if (sentences.length > 1) {
+          return `<ul class="mt-2 space-y-1">${sentences.map(b =>
+            `<li class="text-xs text-gray-500 flex gap-2"><span class="text-blue-300 mt-0.5">•</span><span>${b.trim()}</span></li>`
+          ).join('')}</ul>`;
+        }
+        return `<p class="text-xs text-gray-500 mt-1">${item.description}</p>`;
+      }
+      return '';
+    }
+
+    // 教育经历
+    document.getElementById('educationList').innerHTML = (d.education || []).map(e => `
+      <div class="card">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-semibold text-gray-800">${e.school}</div>
+            <div class="text-sm text-gray-500">${e.degree} · ${e.major}${e.gpa ? ' · GPA ' + e.gpa : ''}</div>
+            ${e.location ? `<div class="text-xs text-gray-400">${e.location}</div>` : ''}
+            ${e.courses ? `<div class="text-xs text-gray-400 mt-1">代表课程：${e.courses}</div>` : ''}
+          </div>
+          <div class="text-xs text-gray-400 whitespace-nowrap">${e.start} — ${e.end}</div>
+        </div>
+      </div>`).join('');
+
+    // 工作经历
+    document.getElementById('experienceList').innerHTML = (d.experience || []).map(e => `
+      <div class="card">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-semibold text-gray-800">${e.company}${e.location ? `<span class="font-normal text-gray-400 text-xs ml-2">${e.location}</span>` : ''}</div>
+            <div class="text-sm text-gray-500">${e.title} · <span class="text-blue-400">${e.type}</span></div>
+          </div>
+          <div class="text-xs text-gray-400 whitespace-nowrap">${e.start} — ${e.end}</div>
+        </div>
+        ${renderBullets(e)}
+      </div>`).join('');
+
+    // 课外活动
+    const activities = d.activities || [];
+    if (activities.length > 0) {
+      document.getElementById('activitiesSection').classList.remove('hidden');
+      document.getElementById('activitiesList').innerHTML = activities.map(a => `
+        <div class="card">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-semibold text-gray-800">${a.organization}${a.location ? `<span class="font-normal text-gray-400 text-xs ml-2">${a.location}</span>` : ''}</div>
+              <div class="text-sm text-gray-500">${a.role}</div>
+            </div>
+            <div class="text-xs text-gray-400 whitespace-nowrap">${a.start} — ${a.end}</div>
+          </div>
+          ${renderBullets(a)}
+        </div>`).join('');
+    }
+
+    // 技能
+    const skills = d.skills || {};
+    const techTags = (skills.technical || '').split(/[,，]/).filter(Boolean)
+      .map(s => `<span class="tag">${s.trim()}</span>`).join('');
+    document.getElementById('skillsSection').innerHTML = `
+      <div class="mb-3">
+        <div class="label">技术技能</div>
+        <div class="mt-1">${techTags || '<span class="text-gray-400 text-sm">暂无</span>'}</div>
+      </div>
+      ${skills.languages ? `<div><div class="label">语言能力</div><div class="value mt-1">${skills.languages}</div></div>` : ''}`;
+
+    // 奖项
+    const awards = d.awards || [];
+    if (awards.length > 0) {
+      document.getElementById('awardsSection').classList.remove('hidden');
+      document.getElementById('awardsList').innerHTML = awards.map(a => `
+        <div class="card flex justify-between">
+          <div class="value">${a.name}</div>
+          <div class="text-xs text-gray-400">${a.date}</div>
+        </div>`).join('');
+    }
+  }
+
+  loadProfile();
+</script>
+
+</body>
+</html>
