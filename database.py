@@ -12,36 +12,72 @@ def get_conn():
 
 def init_db():
     conn = get_conn()
+    # 新的多档案表
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS profile (
-            id INTEGER PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
             data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # 迁移旧数据
+    try:
+        old = conn.execute("SELECT data FROM profile LIMIT 1").fetchone()
+        if old:
+            count = conn.execute("SELECT COUNT(*) as c FROM profiles").fetchone()["c"]
+            if count == 0:
+                conn.execute(
+                    "INSERT INTO profiles (name, data) VALUES (?, ?)",
+                    ("我的简历", old["data"])
+                )
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
 
-def save_profile(data: dict):
+def list_profiles():
     conn = get_conn()
-    existing = conn.execute("SELECT id FROM profile LIMIT 1").fetchone()
-    if existing:
-        conn.execute(
-            "UPDATE profile SET data=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-            (json.dumps(data, ensure_ascii=False), existing["id"])
-        )
-    else:
-        conn.execute(
-            "INSERT INTO profile (data) VALUES (?)",
-            (json.dumps(data, ensure_ascii=False),)
-        )
+    rows = conn.execute(
+        "SELECT id, name, created_at FROM profiles ORDER BY created_at DESC"
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "name": r["name"], "created_at": r["created_at"]} for r in rows]
+
+
+def create_profile(name: str, data: dict) -> int:
+    conn = get_conn()
+    cur = conn.execute(
+        "INSERT INTO profiles (name, data) VALUES (?, ?)",
+        (name, json.dumps(data, ensure_ascii=False))
+    )
+    profile_id = cur.lastrowid
     conn.commit()
     conn.close()
+    return profile_id
 
 
-def load_profile() -> dict | None:
+def get_profile(profile_id: int) -> dict | None:
     conn = get_conn()
-    row = conn.execute("SELECT data FROM profile LIMIT 1").fetchone()
+    row = conn.execute("SELECT data FROM profiles WHERE id=?", (profile_id,)).fetchone()
     conn.close()
     return json.loads(row["data"]) if row else None
+
+
+def update_profile_data(profile_id: int, data: dict):
+    conn = get_conn()
+    conn.execute(
+        "UPDATE profiles SET data=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        (json.dumps(data, ensure_ascii=False), profile_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_profile_by_id(profile_id: int):
+    conn = get_conn()
+    conn.execute("DELETE FROM profiles WHERE id=?", (profile_id,))
+    conn.commit()
+    conn.close()

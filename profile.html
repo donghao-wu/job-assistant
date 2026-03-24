@@ -6,16 +6,10 @@
   <title>我的信息档案</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .section-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #1e40af;
-      border-bottom: 2px solid #e0e7ff;
-      padding-bottom: 0.4rem;
-      margin-bottom: 1rem;
-    }
+    .section-title { font-size: 1rem; font-weight: 700; color: #1e40af; border-bottom: 2px solid #e0e7ff; padding-bottom: 0.4rem; margin-bottom: 1rem; }
     .card { background: #f8fafc; border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem; }
-    .label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.2rem; }
+    .card-edit { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem; }
+    .label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem; }
     .value { font-size: 0.9rem; color: #111827; }
     .tag { display: inline-block; background: #dbeafe; color: #1d4ed8; border-radius: 9999px; padding: 0.2rem 0.75rem; font-size: 0.8rem; margin: 0.2rem; }
   </style>
@@ -30,26 +24,50 @@
     <a href="/profile-page" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">我的档案</a>
   </div>
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-8">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-800">我的信息档案</h1>
-      <p class="text-gray-400 text-sm mt-1">从简历自动解析，可手动编辑</p>
-    </div>
+  <!-- 档案选择栏 -->
+  <div class="bg-white rounded-2xl shadow-sm p-4 mb-6 flex items-center gap-3">
+    <select id="profileSelector" onchange="onProfileChange()"
+      class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700">
+      <option value="">— 暂无档案 —</option>
+    </select>
+    <button onclick="openModal()"
+      class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+      + 新建档案
+    </button>
+    <button onclick="deleteCurrentProfile()"
+      class="bg-red-50 hover:bg-red-100 text-red-500 text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+      删除
+    </button>
   </div>
 
-  <!-- 上传解析入口 -->
-  <div id="uploadSection" class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-    <p class="text-sm font-medium text-gray-700 mb-3">上传简历自动解析档案</p>
-    <div class="flex gap-3">
-      <input type="file" id="resumeFile" accept=".pdf,.docx"
-        class="block text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"/>
-      <button onclick="parseResume()"
-        class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-5 py-2 rounded-lg transition-colors whitespace-nowrap">
-        解析简历
-      </button>
+  <!-- 新建档案弹窗 -->
+  <div id="newProfileModal" class="fixed inset-0 bg-black/40 items-center justify-center z-50" style="display:none">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl mx-4">
+      <h2 class="text-lg font-bold text-gray-800 mb-5">新建档案</h2>
+      <div class="space-y-4">
+        <div>
+          <div class="label">档案名称（如：金融方向简历）</div>
+          <input id="newProfileName" placeholder="输入档案名称"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 mt-1"/>
+        </div>
+        <div>
+          <div class="label">上传简历文件</div>
+          <input id="newResumeFile" type="file" accept=".pdf,.docx"
+            class="mt-1 block text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"/>
+        </div>
+        <div id="modalStatus" class="text-sm text-gray-400 min-h-[1.25rem]"></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="createProfile()"
+          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition-colors">
+          解析并保存
+        </button>
+        <button onclick="closeModal()"
+          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm py-2 rounded-lg transition-colors">
+          取消
+        </button>
+      </div>
     </div>
-    <div id="parseStatus" class="mt-2 text-sm text-gray-400"></div>
   </div>
 
   <!-- 档案内容 -->
@@ -57,38 +75,52 @@
 
     <!-- 基本信息 -->
     <div class="bg-white rounded-2xl shadow-sm p-6">
-      <div class="section-title">基本信息</div>
-      <div class="grid grid-cols-2 gap-4" id="basicInfo"></div>
+      <div class="flex justify-between items-center mb-4">
+        <div class="section-title mb-0 border-0 pb-0">基本信息</div>
+        <button onclick="editBasic()" class="text-xs text-blue-500 hover:text-blue-700">编辑</button>
+      </div>
+      <div class="border-b border-indigo-100 mb-4"></div>
+      <div id="basicContent" class="grid grid-cols-2 gap-4"></div>
     </div>
 
     <!-- 教育经历 -->
     <div class="bg-white rounded-2xl shadow-sm p-6">
       <div class="section-title">教育经历</div>
-      <div id="educationList"></div>
+      <div id="educationContent"></div>
     </div>
 
     <!-- 工作/实习经历 -->
     <div class="bg-white rounded-2xl shadow-sm p-6">
       <div class="section-title">工作 / 实习经历</div>
-      <div id="experienceList"></div>
+      <div id="experienceContent"></div>
     </div>
 
-    <!-- 项目 / 课外活动 -->
+    <!-- 项目经历 -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="section-title">项目经历</div>
+      <div id="projectsContent"></div>
+    </div>
+
+    <!-- 课外活动 -->
     <div id="activitiesSection" class="bg-white rounded-2xl shadow-sm p-6 hidden">
-      <div class="section-title">项目 / Other Activities</div>
-      <div id="activitiesList"></div>
+      <div class="section-title">课外活动</div>
+      <div id="activitiesContent"></div>
     </div>
 
     <!-- 技能 & 语言 -->
     <div class="bg-white rounded-2xl shadow-sm p-6">
-      <div class="section-title">技能 & 语言</div>
-      <div id="skillsSection"></div>
+      <div class="flex justify-between items-center mb-4">
+        <div class="section-title mb-0 border-0 pb-0">技能 & 语言</div>
+        <button onclick="editSkills()" class="text-xs text-blue-500 hover:text-blue-700">编辑</button>
+      </div>
+      <div class="border-b border-indigo-100 mb-4"></div>
+      <div id="skillsContent"></div>
     </div>
 
     <!-- 奖项 -->
     <div id="awardsSection" class="bg-white rounded-2xl shadow-sm p-6 hidden">
       <div class="section-title">奖项荣誉</div>
-      <div id="awardsList"></div>
+      <div id="awardsContent"></div>
     </div>
 
   </div>
@@ -96,145 +128,643 @@
   <!-- 空状态 -->
   <div id="emptyState" class="text-center py-16 text-gray-400">
     <p class="text-4xl mb-3">📄</p>
-    <p class="text-sm">上传简历后，档案会自动生成</p>
+    <p class="text-sm">点击「新建档案」上传简历，自动解析生成个人档案</p>
   </div>
 
 </div>
 
 <script>
-  async function parseResume() {
-    const file = document.getElementById('resumeFile').files[0];
-    if (!file) { alert('请先选择简历文件'); return; }
+// ═══════════════════════════════════════════════
+// 状态
+// ═══════════════════════════════════════════════
+let profileData = {};
+let currentProfileId = null;
 
-    const status = document.getElementById('parseStatus');
-    status.textContent = '解析中，请稍候...';
+// 样式常量
+const INP = 'w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400';
+const TEA = 'w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 resize-none';
+const BTN1 = 'bg-blue-500 hover:bg-blue-600 text-white text-xs px-4 py-1.5 rounded-lg transition-colors cursor-pointer';
+const BTN2 = 'bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs px-4 py-1.5 rounded-lg transition-colors cursor-pointer';
+const EDIT_BTN = 'text-xs text-blue-500 hover:text-blue-700 cursor-pointer';
+const DEL_BTN = 'text-xs text-red-400 hover:text-red-600 cursor-pointer';
+const ADD_BTN = 'text-sm text-blue-500 hover:text-blue-700 mt-2 cursor-pointer flex items-center gap-1';
 
+// ═══════════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════════
+async function init() {
+  const profiles = await fetchProfiles();
+  if (profiles.length > 0) {
+    document.getElementById('profileSelector').value = profiles[0].id;
+    await loadProfile(profiles[0].id);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 档案列表
+// ═══════════════════════════════════════════════
+async function fetchProfiles() {
+  const res = await fetch('/profiles');
+  const profiles = await res.json();
+  const sel = document.getElementById('profileSelector');
+  sel.innerHTML = profiles.length === 0
+    ? '<option value="">— 暂无档案 —</option>'
+    : profiles.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  return profiles;
+}
+
+async function onProfileChange() {
+  const id = parseInt(document.getElementById('profileSelector').value);
+  if (id) await loadProfile(id);
+}
+
+// ═══════════════════════════════════════════════
+// 加载档案
+// ═══════════════════════════════════════════════
+async function loadProfile(id) {
+  currentProfileId = id;
+  const res = await fetch(`/profiles/${id}`);
+  if (!res.ok) return;
+  profileData = await res.json();
+  renderProfile(profileData);
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('profileContent').classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════
+// 保存到服务器
+// ═══════════════════════════════════════════════
+async function saveProfile() {
+  if (!currentProfileId) return;
+  await fetch(`/profiles/${currentProfileId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profileData)
+  });
+}
+
+// ═══════════════════════════════════════════════
+// 删除档案
+// ═══════════════════════════════════════════════
+async function deleteCurrentProfile() {
+  if (!currentProfileId) return;
+  if (!confirm('确定要删除这份档案吗？此操作不可撤销。')) return;
+  await fetch(`/profiles/${currentProfileId}`, { method: 'DELETE' });
+  currentProfileId = null;
+  profileData = {};
+  const profiles = await fetchProfiles();
+  if (profiles.length > 0) {
+    document.getElementById('profileSelector').value = profiles[0].id;
+    await loadProfile(profiles[0].id);
+  } else {
+    document.getElementById('profileContent').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('hidden');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 新建档案弹窗
+// ═══════════════════════════════════════════════
+function openModal() {
+  document.getElementById('newProfileModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('newProfileModal').style.display = 'none';
+  document.getElementById('modalStatus').textContent = '';
+  document.getElementById('newProfileName').value = '';
+  document.getElementById('newResumeFile').value = '';
+}
+
+async function createProfile() {
+  const name = document.getElementById('newProfileName').value.trim();
+  const file = document.getElementById('newResumeFile').files[0];
+  const status = document.getElementById('modalStatus');
+  if (!name) { alert('请输入档案名称'); return; }
+  if (!file) { alert('请选择简历文件'); return; }
+
+  status.textContent = '⏳ 正在解析简历...';
+
+  try {
+    // Step 1: 解析
     const formData = new FormData();
     formData.append('file', file);
-
-    try {
-      const res = await fetch('/parse-resume', { method: 'POST', body: formData });
-      const data = await res.json();
-      status.textContent = '✅ 解析完成';
-      renderProfile(data.data);
-    } catch (e) {
-      status.textContent = '❌ 解析失败，请重试';
+    const parseRes = await fetch('/parse-resume', { method: 'POST', body: formData });
+    if (!parseRes.ok) { status.textContent = `❌ 服务器错误 ${parseRes.status}`; return; }
+    const parsed = await parseRes.json();
+    if (parsed.status !== 'ok') {
+      status.textContent = '❌ 解析失败：' + (parsed.message || '请重试');
+      return;
     }
+
+    // Step 2: 保存
+    status.textContent = '💾 保存中...';
+    const saveRes = await fetch('/profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, data: parsed.data })
+    });
+    if (!saveRes.ok) { status.textContent = `❌ 保存失败 ${saveRes.status}`; return; }
+    const saved = await saveRes.json();
+
+    closeModal();
+    await fetchProfiles();
+    document.getElementById('profileSelector').value = saved.id;
+    await loadProfile(saved.id);
+  } catch (e) {
+    status.textContent = '❌ 请求失败：' + e.message;
   }
+}
 
-  async function loadProfile() {
-    try {
-      const res = await fetch('/profile');
-      if (res.status === 404) return;
-      const data = await res.json();
-      renderProfile(data.data);
-    } catch (e) {}
-  }
+// ═══════════════════════════════════════════════
+// 渲染全档案
+// ═══════════════════════════════════════════════
+function renderProfile(d) {
+  renderBasic(d.basic);
+  renderEducation(d.education);
+  renderExperience(d.experience);
+  renderProjects(d.projects);
+  renderActivities(d.activities);
+  renderSkills(d.skills);
+  renderAwards(d.awards);
+}
 
-  function renderProfile(d) {
-    document.getElementById('emptyState').classList.add('hidden');
-    document.getElementById('profileContent').classList.remove('hidden');
+// ═══════════════════════════════════════════════
+// 工具函数
+// ═══════════════════════════════════════════════
+function fv(v) { return v || ''; }
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function bulletsToText(b) { return (b || []).join('\n'); }
+function textToBullets(t) { return t.split('\n').map(s => s.trim()).filter(s => s.length > 0); }
+function ef(label, id, val) {
+  return `<div><div class="label">${label}</div><input id="${id}" class="${INP}" value="${esc(val)}"></div>`;
+}
+function renderBulletsHtml(bullets) {
+  if (!bullets || bullets.length === 0) return '';
+  return `<ul class="mt-2 space-y-1">${bullets.map(b =>
+    `<li class="text-xs text-gray-500 flex gap-2"><span class="text-blue-300 mt-0.5">•</span><span>${esc(b)}</span></li>`
+  ).join('')}</ul>`;
+}
+function actionBtns(editFn, deleteFn) {
+  return `<div class="flex gap-3">
+    <button onclick="${editFn}" class="${EDIT_BTN}">编辑</button>
+    <button onclick="${deleteFn}" class="${DEL_BTN}">删除</button>
+  </div>`;
+}
 
-    // 基本信息
-    const basic = d.basic || {};
-    const fields = [
-      ['姓名', basic.name], ['邮箱', basic.email],
-      ['手机', basic.phone], ['城市', basic.location],
-      ['主页', basic.linkedin]
-    ];
-    document.getElementById('basicInfo').innerHTML = fields
-      .filter(([, v]) => v)
-      .map(([l, v]) => `<div><div class="label">${l}</div><div class="value">${v}</div></div>`)
-      .join('');
+// ═══════════════════════════════════════════════
+// 基本信息
+// ═══════════════════════════════════════════════
+function renderBasic(basic) {
+  basic = basic || {};
+  const fields = [['姓名',basic.name],['邮箱',basic.email],['手机',basic.phone],['城市',basic.location],['LinkedIn',basic.linkedin]];
+  document.getElementById('basicContent').innerHTML = fields
+    .filter(([,v]) => v && v !== '无')
+    .map(([l,v]) => `<div><div class="label">${l}</div><div class="value">${esc(v)}</div></div>`)
+    .join('');
+}
 
-    function renderBullets(item) {
-      // 兼容新格式 bullets[] 和旧格式 description 字符串
-      if (item.bullets && item.bullets.length > 0) {
-        return `<ul class="mt-2 space-y-1">${item.bullets.map(b =>
-          `<li class="text-xs text-gray-500 flex gap-2"><span class="text-blue-300 mt-0.5">•</span><span>${b}</span></li>`
-        ).join('')}</ul>`;
-      }
-      if (item.description) {
-        // 把长段落按句号/分号拆成 bullet points
-        const sentences = item.description.split(/(?<=[.。;；])\s+/).filter(s => s.trim().length > 5);
-        if (sentences.length > 1) {
-          return `<ul class="mt-2 space-y-1">${sentences.map(b =>
-            `<li class="text-xs text-gray-500 flex gap-2"><span class="text-blue-300 mt-0.5">•</span><span>${b.trim()}</span></li>`
-          ).join('')}</ul>`;
-        }
-        return `<p class="text-xs text-gray-500 mt-1">${item.description}</p>`;
-      }
-      return '';
-    }
+function editBasic() {
+  const b = profileData.basic || {};
+  document.getElementById('basicContent').innerHTML = `
+    <div class="col-span-2 grid grid-cols-2 gap-3">
+      ${ef('姓名','b-name',b.name)}
+      ${ef('邮箱','b-email',b.email)}
+      ${ef('手机','b-phone',b.phone)}
+      ${ef('城市','b-location',b.location)}
+      ${ef('LinkedIn','b-linkedin',b.linkedin)}
+    </div>
+    <div class="col-span-2 flex gap-2 mt-2">
+      <button onclick="saveBasic()" class="${BTN1}">保存</button>
+      <button onclick="renderBasic(profileData.basic)" class="${BTN2}">取消</button>
+    </div>`;
+}
 
-    // 教育经历
-    document.getElementById('educationList').innerHTML = (d.education || []).map(e => `
-      <div class="card">
+function saveBasic() {
+  profileData.basic = {
+    name: document.getElementById('b-name').value,
+    email: document.getElementById('b-email').value,
+    phone: document.getElementById('b-phone').value,
+    location: document.getElementById('b-location').value,
+    linkedin: document.getElementById('b-linkedin').value,
+  };
+  renderBasic(profileData.basic);
+  saveProfile();
+}
+
+// ═══════════════════════════════════════════════
+// 教育经历
+// ═══════════════════════════════════════════════
+function renderEducation(list) {
+  list = list || [];
+  document.getElementById('educationContent').innerHTML =
+    list.map((e, i) => `
+      <div id="edu-${i}" class="card">
         <div class="flex justify-between items-start">
-          <div>
-            <div class="font-semibold text-gray-800">${e.school}</div>
-            <div class="text-sm text-gray-500">${e.degree} · ${e.major}${e.gpa ? ' · GPA ' + e.gpa : ''}</div>
-            ${e.location ? `<div class="text-xs text-gray-400">${e.location}</div>` : ''}
-            ${e.courses ? `<div class="text-xs text-gray-400 mt-1">代表课程：${e.courses}</div>` : ''}
+          <div class="flex-1">
+            <div class="font-semibold text-gray-800">${esc(e.school)}</div>
+            <div class="text-sm text-gray-500">${esc(e.degree)} · ${esc(e.major)}${e.gpa && e.gpa!=='无' ? ' · GPA '+esc(e.gpa) : ''}</div>
+            ${e.location && e.location!=='无' ? `<div class="text-xs text-gray-400">${esc(e.location)}</div>` : ''}
+            ${e.courses && e.courses!=='无' ? `<div class="text-xs text-gray-400 mt-1">课程：${esc(e.courses)}</div>` : ''}
           </div>
-          <div class="text-xs text-gray-400 whitespace-nowrap">${e.start} — ${e.end}</div>
+          <div class="flex flex-col items-end gap-1 ml-4">
+            <div class="text-xs text-gray-400 whitespace-nowrap">${esc(e.start)} — ${esc(e.end)}</div>
+            ${actionBtns(`editEdu(${i})`, `deleteEdu(${i})`)}
+          </div>
         </div>
-      </div>`).join('');
+      </div>`).join('') +
+    `<button onclick="addEdu()" class="${ADD_BTN}">+ 添加教育经历</button>`;
+}
 
-    // 工作经历
-    document.getElementById('experienceList').innerHTML = (d.experience || []).map(e => `
-      <div class="card">
-        <div class="flex justify-between items-start">
-          <div>
-            <div class="font-semibold text-gray-800">${e.company}${e.location ? `<span class="font-normal text-gray-400 text-xs ml-2">${e.location}</span>` : ''}</div>
-            <div class="text-sm text-gray-500">${e.title} · <span class="text-blue-400">${e.type}</span></div>
-          </div>
-          <div class="text-xs text-gray-400 whitespace-nowrap">${e.start} — ${e.end}</div>
-        </div>
-        ${renderBullets(e)}
-      </div>`).join('');
-
-    // 课外活动
-    const activities = d.activities || [];
-    if (activities.length > 0) {
-      document.getElementById('activitiesSection').classList.remove('hidden');
-      document.getElementById('activitiesList').innerHTML = activities.map(a => `
-        <div class="card">
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="font-semibold text-gray-800">${a.organization}${a.location ? `<span class="font-normal text-gray-400 text-xs ml-2">${a.location}</span>` : ''}</div>
-              <div class="text-sm text-gray-500">${a.role}</div>
-            </div>
-            <div class="text-xs text-gray-400 whitespace-nowrap">${a.start} — ${a.end}</div>
-          </div>
-          ${renderBullets(a)}
-        </div>`).join('');
-    }
-
-    // 技能
-    const skills = d.skills || {};
-    const techTags = (skills.technical || '').split(/[,，]/).filter(Boolean)
-      .map(s => `<span class="tag">${s.trim()}</span>`).join('');
-    document.getElementById('skillsSection').innerHTML = `
-      <div class="mb-3">
-        <div class="label">技术技能</div>
-        <div class="mt-1">${techTags || '<span class="text-gray-400 text-sm">暂无</span>'}</div>
+function editEdu(idx) {
+  const e = profileData.education[idx] || {};
+  document.getElementById(`edu-${idx}`).outerHTML = `
+    <div id="edu-${idx}" class="card-edit">
+      <div class="grid grid-cols-2 gap-3">
+        ${ef('学校','edu-'+idx+'-school',e.school)}
+        ${ef('城市','edu-'+idx+'-location',e.location)}
+        ${ef('学位','edu-'+idx+'-degree',e.degree)}
+        ${ef('专业','edu-'+idx+'-major',e.major)}
+        ${ef('GPA','edu-'+idx+'-gpa',e.gpa)}
+        ${ef('开始时间','edu-'+idx+'-start',e.start)}
+        ${ef('结束时间','edu-'+idx+'-end',e.end)}
+        ${ef('代表课程','edu-'+idx+'-courses',e.courses)}
       </div>
-      ${skills.languages ? `<div><div class="label">语言能力</div><div class="value mt-1">${skills.languages}</div></div>` : ''}`;
+      <div class="flex gap-2 mt-3">
+        <button onclick="saveEdu(${idx})" class="${BTN1}">保存</button>
+        <button onclick="renderEducation(profileData.education)" class="${BTN2}">取消</button>
+      </div>
+    </div>`;
+}
 
-    // 奖项
-    const awards = d.awards || [];
-    if (awards.length > 0) {
-      document.getElementById('awardsSection').classList.remove('hidden');
-      document.getElementById('awardsList').innerHTML = awards.map(a => `
-        <div class="card flex justify-between">
-          <div class="value">${a.name}</div>
-          <div class="text-xs text-gray-400">${a.date}</div>
-        </div>`).join('');
-    }
-  }
+function saveEdu(idx) {
+  profileData.education[idx] = {
+    school: document.getElementById(`edu-${idx}-school`).value,
+    location: document.getElementById(`edu-${idx}-location`).value,
+    degree: document.getElementById(`edu-${idx}-degree`).value,
+    major: document.getElementById(`edu-${idx}-major`).value,
+    gpa: document.getElementById(`edu-${idx}-gpa`).value,
+    start: document.getElementById(`edu-${idx}-start`).value,
+    end: document.getElementById(`edu-${idx}-end`).value,
+    courses: document.getElementById(`edu-${idx}-courses`).value,
+  };
+  renderEducation(profileData.education);
+  saveProfile();
+}
 
-  loadProfile();
+function deleteEdu(idx) {
+  if (!confirm('确定删除此教育经历？')) return;
+  profileData.education.splice(idx, 1);
+  renderEducation(profileData.education);
+  saveProfile();
+}
+
+function addEdu() {
+  if (!profileData.education) profileData.education = [];
+  profileData.education.push({school:'',location:'',degree:'',major:'',gpa:'',start:'',end:'',courses:''});
+  renderEducation(profileData.education);
+  editEdu(profileData.education.length - 1);
+}
+
+// ═══════════════════════════════════════════════
+// 工作/实习经历
+// ═══════════════════════════════════════════════
+function renderExperience(list) {
+  list = list || [];
+  document.getElementById('experienceContent').innerHTML =
+    list.map((e, i) => `
+      <div id="exp-${i}" class="card">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="font-semibold text-gray-800">${esc(e.company)}${e.location && e.location!=='无' ? `<span class="font-normal text-gray-400 text-xs ml-2">${esc(e.location)}</span>` : ''}</div>
+            <div class="text-sm text-gray-500">${esc(e.title)} · <span class="text-blue-400 text-xs">${esc(e.type)}</span></div>
+          </div>
+          <div class="flex flex-col items-end gap-1 ml-4">
+            <div class="text-xs text-gray-400 whitespace-nowrap">${esc(e.start)} — ${esc(e.end)}</div>
+            ${actionBtns(`editExp(${i})`, `deleteExp(${i})`)}
+          </div>
+        </div>
+        ${renderBulletsHtml(e.bullets)}
+      </div>`).join('') +
+    `<button onclick="addExp()" class="${ADD_BTN}">+ 添加工作经历</button>`;
+}
+
+function editExp(idx) {
+  const e = profileData.experience[idx] || {};
+  document.getElementById(`exp-${idx}`).outerHTML = `
+    <div id="exp-${idx}" class="card-edit">
+      <div class="grid grid-cols-2 gap-3">
+        ${ef('公司','exp-'+idx+'-company',e.company)}
+        ${ef('城市','exp-'+idx+'-location',e.location)}
+        ${ef('职位','exp-'+idx+'-title',e.title)}
+        <div><div class="label">类型</div>
+          <select id="exp-${idx}-type" class="${INP}">
+            <option ${e.type==='实习'?'selected':''}>实习</option>
+            <option ${e.type==='全职'?'selected':''}>全职</option>
+            <option ${e.type==='兼职'?'selected':''}>兼职</option>
+          </select>
+        </div>
+        ${ef('开始时间','exp-'+idx+'-start',e.start)}
+        ${ef('结束时间','exp-'+idx+'-end',e.end)}
+      </div>
+      <div class="mt-3">
+        <div class="label">职责描述（每行一条）</div>
+        <textarea id="exp-${idx}-bullets" class="${TEA} h-32 mt-1">${esc(bulletsToText(e.bullets))}</textarea>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="saveExp(${idx})" class="${BTN1}">保存</button>
+        <button onclick="renderExperience(profileData.experience)" class="${BTN2}">取消</button>
+      </div>
+    </div>`;
+}
+
+function saveExp(idx) {
+  profileData.experience[idx] = {
+    company: document.getElementById(`exp-${idx}-company`).value,
+    location: document.getElementById(`exp-${idx}-location`).value,
+    title: document.getElementById(`exp-${idx}-title`).value,
+    type: document.getElementById(`exp-${idx}-type`).value,
+    start: document.getElementById(`exp-${idx}-start`).value,
+    end: document.getElementById(`exp-${idx}-end`).value,
+    bullets: textToBullets(document.getElementById(`exp-${idx}-bullets`).value),
+  };
+  renderExperience(profileData.experience);
+  saveProfile();
+}
+
+function deleteExp(idx) {
+  if (!confirm('确定删除此工作经历？')) return;
+  profileData.experience.splice(idx, 1);
+  renderExperience(profileData.experience);
+  saveProfile();
+}
+
+function addExp() {
+  if (!profileData.experience) profileData.experience = [];
+  profileData.experience.push({company:'',location:'',title:'',type:'实习',start:'',end:'',bullets:[]});
+  renderExperience(profileData.experience);
+  editExp(profileData.experience.length - 1);
+}
+
+// ═══════════════════════════════════════════════
+// 项目经历
+// ═══════════════════════════════════════════════
+function renderProjects(list) {
+  list = list || [];
+  document.getElementById('projectsContent').innerHTML =
+    list.map((p, i) => `
+      <div id="proj-${i}" class="card">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="font-semibold text-gray-800">${esc(p.name)}</div>
+            ${p.tech && p.tech!=='无' ? `<div class="text-xs text-blue-400 mt-0.5">${esc(p.tech)}</div>` : ''}
+            ${p.location && p.location!=='无' ? `<div class="text-xs text-gray-400">${esc(p.location)}</div>` : ''}
+          </div>
+          <div class="flex flex-col items-end gap-1 ml-4">
+            ${(p.start && p.start!=='无') || (p.end && p.end!=='无') ? `<div class="text-xs text-gray-400 whitespace-nowrap">${esc(p.start||'')} — ${esc(p.end||'')}</div>` : ''}
+            ${actionBtns(`editProj(${i})`, `deleteProj(${i})`)}
+          </div>
+        </div>
+        ${renderBulletsHtml(p.bullets)}
+      </div>`).join('') +
+    `<button onclick="addProj()" class="${ADD_BTN}">+ 添加项目经历</button>`;
+}
+
+function editProj(idx) {
+  const p = profileData.projects[idx] || {};
+  document.getElementById(`proj-${idx}`).outerHTML = `
+    <div id="proj-${idx}" class="card-edit">
+      <div class="grid grid-cols-2 gap-3">
+        ${ef('项目名称','proj-'+idx+'-name',p.name)}
+        ${ef('城市/机构','proj-'+idx+'-location',p.location)}
+        ${ef('技术栈','proj-'+idx+'-tech',p.tech)}
+        <div></div>
+        ${ef('开始时间','proj-'+idx+'-start',p.start)}
+        ${ef('结束时间','proj-'+idx+'-end',p.end)}
+      </div>
+      <div class="mt-3">
+        <div class="label">项目描述（每行一条）</div>
+        <textarea id="proj-${idx}-bullets" class="${TEA} h-32 mt-1">${esc(bulletsToText(p.bullets))}</textarea>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="saveProj(${idx})" class="${BTN1}">保存</button>
+        <button onclick="renderProjects(profileData.projects)" class="${BTN2}">取消</button>
+      </div>
+    </div>`;
+}
+
+function saveProj(idx) {
+  profileData.projects[idx] = {
+    name: document.getElementById(`proj-${idx}-name`).value,
+    location: document.getElementById(`proj-${idx}-location`).value,
+    tech: document.getElementById(`proj-${idx}-tech`).value,
+    start: document.getElementById(`proj-${idx}-start`).value,
+    end: document.getElementById(`proj-${idx}-end`).value,
+    bullets: textToBullets(document.getElementById(`proj-${idx}-bullets`).value),
+  };
+  renderProjects(profileData.projects);
+  saveProfile();
+}
+
+function deleteProj(idx) {
+  if (!confirm('确定删除此项目经历？')) return;
+  profileData.projects.splice(idx, 1);
+  renderProjects(profileData.projects);
+  saveProfile();
+}
+
+function addProj() {
+  if (!profileData.projects) profileData.projects = [];
+  profileData.projects.push({name:'',location:'',tech:'',start:'',end:'',bullets:[]});
+  renderProjects(profileData.projects);
+  editProj(profileData.projects.length - 1);
+}
+
+// ═══════════════════════════════════════════════
+// 课外活动
+// ═══════════════════════════════════════════════
+function renderActivities(list) {
+  list = list || [];
+  const section = document.getElementById('activitiesSection');
+  if (list.length === 0) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  document.getElementById('activitiesContent').innerHTML =
+    list.map((a, i) => `
+      <div id="act-${i}" class="card">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="font-semibold text-gray-800">${esc(a.organization)}${a.location && a.location!=='无' ? `<span class="font-normal text-gray-400 text-xs ml-2">${esc(a.location)}</span>` : ''}</div>
+            <div class="text-sm text-gray-500">${esc(a.role)}</div>
+          </div>
+          <div class="flex flex-col items-end gap-1 ml-4">
+            <div class="text-xs text-gray-400 whitespace-nowrap">${esc(a.start)} — ${esc(a.end)}</div>
+            ${actionBtns(`editAct(${i})`, `deleteAct(${i})`)}
+          </div>
+        </div>
+        ${renderBulletsHtml(a.bullets)}
+      </div>`).join('') +
+    `<button onclick="addAct()" class="${ADD_BTN}">+ 添加活动</button>`;
+}
+
+function editAct(idx) {
+  const a = profileData.activities[idx] || {};
+  document.getElementById(`act-${idx}`).outerHTML = `
+    <div id="act-${idx}" class="card-edit">
+      <div class="grid grid-cols-2 gap-3">
+        ${ef('组织/机构','act-'+idx+'-org',a.organization)}
+        ${ef('城市','act-'+idx+'-location',a.location)}
+        ${ef('角色','act-'+idx+'-role',a.role)}
+        <div></div>
+        ${ef('开始时间','act-'+idx+'-start',a.start)}
+        ${ef('结束时间','act-'+idx+'-end',a.end)}
+      </div>
+      <div class="mt-3">
+        <div class="label">描述（每行一条）</div>
+        <textarea id="act-${idx}-bullets" class="${TEA} h-28 mt-1">${esc(bulletsToText(a.bullets))}</textarea>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="saveAct(${idx})" class="${BTN1}">保存</button>
+        <button onclick="renderActivities(profileData.activities)" class="${BTN2}">取消</button>
+      </div>
+    </div>`;
+}
+
+function saveAct(idx) {
+  profileData.activities[idx] = {
+    organization: document.getElementById(`act-${idx}-org`).value,
+    location: document.getElementById(`act-${idx}-location`).value,
+    role: document.getElementById(`act-${idx}-role`).value,
+    start: document.getElementById(`act-${idx}-start`).value,
+    end: document.getElementById(`act-${idx}-end`).value,
+    bullets: textToBullets(document.getElementById(`act-${idx}-bullets`).value),
+  };
+  renderActivities(profileData.activities);
+  saveProfile();
+}
+
+function deleteAct(idx) {
+  if (!confirm('确定删除？')) return;
+  profileData.activities.splice(idx, 1);
+  renderActivities(profileData.activities);
+  saveProfile();
+}
+
+function addAct() {
+  if (!profileData.activities) profileData.activities = [];
+  profileData.activities.push({organization:'',role:'',location:'',start:'',end:'',bullets:[]});
+  document.getElementById('activitiesSection').classList.remove('hidden');
+  renderActivities(profileData.activities);
+  editAct(profileData.activities.length - 1);
+}
+
+// ═══════════════════════════════════════════════
+// 技能 & 语言
+// ═══════════════════════════════════════════════
+function renderSkills(skills) {
+  skills = skills || {};
+  const techTags = (skills.technical || '').split(/[,，]/).filter(Boolean)
+    .map(s => `<span class="tag">${esc(s.trim())}</span>`).join('');
+  document.getElementById('skillsContent').innerHTML = `
+    <div class="mb-3">
+      <div class="label">技术技能</div>
+      <div class="mt-1">${techTags || '<span class="text-gray-400 text-sm">暂无</span>'}</div>
+    </div>
+    ${skills.languages && skills.languages!=='无' ? `<div><div class="label">语言能力</div><div class="value mt-1">${esc(skills.languages)}</div></div>` : ''}`;
+}
+
+function editSkills() {
+  const s = profileData.skills || {};
+  document.getElementById('skillsContent').innerHTML = `
+    <div class="space-y-3">
+      <div>
+        <div class="label">技术技能（逗号分隔）</div>
+        <textarea id="sk-tech" class="${TEA} h-20 mt-1">${esc(s.technical || '')}</textarea>
+      </div>
+      <div>
+        <div class="label">语言能力</div>
+        <input id="sk-lang" class="${INP} mt-1" value="${esc(s.languages || '')}">
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveSkills()" class="${BTN1}">保存</button>
+      <button onclick="renderSkills(profileData.skills)" class="${BTN2}">取消</button>
+    </div>`;
+}
+
+function saveSkills() {
+  profileData.skills = {
+    technical: document.getElementById('sk-tech').value,
+    languages: document.getElementById('sk-lang').value,
+  };
+  renderSkills(profileData.skills);
+  saveProfile();
+}
+
+// ═══════════════════════════════════════════════
+// 奖项
+// ═══════════════════════════════════════════════
+function renderAwards(list) {
+  list = list || [];
+  const section = document.getElementById('awardsSection');
+  if (list.length === 0) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  document.getElementById('awardsContent').innerHTML =
+    list.map((a, i) => `
+      <div id="award-${i}" class="card flex justify-between items-center">
+        <div class="value">${esc(a.name)}</div>
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-gray-400">${esc(a.date)}</div>
+          ${actionBtns(`editAward(${i})`, `deleteAward(${i})`)}
+        </div>
+      </div>`).join('') +
+    `<button onclick="addAward()" class="${ADD_BTN}">+ 添加奖项</button>`;
+}
+
+function editAward(idx) {
+  const a = profileData.awards[idx] || {};
+  document.getElementById(`award-${idx}`).outerHTML = `
+    <div id="award-${idx}" class="card-edit">
+      <div class="grid grid-cols-2 gap-3">
+        ${ef('奖项名称','award-'+idx+'-name',a.name)}
+        ${ef('时间','award-'+idx+'-date',a.date)}
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="saveAward(${idx})" class="${BTN1}">保存</button>
+        <button onclick="renderAwards(profileData.awards)" class="${BTN2}">取消</button>
+      </div>
+    </div>`;
+}
+
+function saveAward(idx) {
+  profileData.awards[idx] = {
+    name: document.getElementById(`award-${idx}-name`).value,
+    date: document.getElementById(`award-${idx}-date`).value,
+  };
+  renderAwards(profileData.awards);
+  saveProfile();
+}
+
+function deleteAward(idx) {
+  if (!confirm('确定删除？')) return;
+  profileData.awards.splice(idx, 1);
+  renderAwards(profileData.awards);
+  saveProfile();
+}
+
+function addAward() {
+  if (!profileData.awards) profileData.awards = [];
+  profileData.awards.push({name:'',date:''});
+  document.getElementById('awardsSection').classList.remove('hidden');
+  renderAwards(profileData.awards);
+  editAward(profileData.awards.length - 1);
+}
+
+// ═══════════════════════════════════════════════
+// 启动
+// ═══════════════════════════════════════════════
+init();
 </script>
 
 </body>
