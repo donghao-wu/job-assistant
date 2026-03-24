@@ -83,6 +83,17 @@
       <div id="basicContent" class="grid grid-cols-2 gap-4"></div>
     </div>
 
+    <!-- 扩展信息 -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="flex justify-between items-center mb-4">
+        <div class="section-title mb-0 border-0 pb-0">扩展信息</div>
+        <button onclick="editExtended()" class="text-xs text-blue-500 hover:text-blue-700">编辑</button>
+      </div>
+      <div class="border-b border-indigo-100 mb-4"></div>
+      <p class="text-xs text-gray-400 mb-3">填写一次，各平台自动填入（年龄、民族、政治面貌等简历以外的字段）</p>
+      <div id="extendedContent" class="grid grid-cols-2 gap-4"></div>
+    </div>
+
     <!-- 教育经历 -->
     <div class="bg-white rounded-2xl shadow-sm p-6">
       <div class="section-title">教育经历</div>
@@ -281,6 +292,7 @@ async function createProfile() {
 // ═══════════════════════════════════════════════
 function renderProfile(d) {
   renderBasic(d.basic);
+  renderExtended(d.extended);
   renderEducation(d.education);
   renderExperience(d.experience);
   renderProjects(d.projects);
@@ -351,6 +363,78 @@ function saveBasic() {
     linkedin: document.getElementById('b-linkedin').value,
   };
   renderBasic(profileData.basic);
+  saveProfile();
+}
+
+// ═══════════════════════════════════════════════
+// 扩展信息
+// ═══════════════════════════════════════════════
+const EXTENDED_FIELDS = [
+  { key: 'gender',       label: '性别',     type: 'select', options: ['男','女','保密'] },
+  { key: 'birthdate',    label: '出生日期', type: 'text',   placeholder: '如 1999-08' },
+  { key: 'ethnicity',    label: '民族',     type: 'select', options: ['汉族','满族','回族','蒙古族','藏族','维吾尔族','壮族','其他'] },
+  { key: 'political',    label: '政治面貌', type: 'select', options: ['群众','共青团员','中共党员','中共预备党员','民主党派','其他'] },
+  { key: 'hometown',     label: '籍贯',     type: 'text',   placeholder: '如 广东省广州市' },
+  { key: 'health',       label: '健康状况', type: 'select', options: ['良好','一般','较差'] },
+  { key: 'marriage',     label: '婚姻状况', type: 'select', options: ['未婚','已婚','离异'] },
+  { key: 'height',       label: '身高(cm)', type: 'text',   placeholder: '如 170' },
+  { key: 'weight',       label: '体重(kg)', type: 'text',   placeholder: '如 60' },
+  { key: 'target_city',  label: '期望城市', type: 'text',   placeholder: '如 上海' },
+  { key: 'salary_min',   label: '期望薪资（最低）', type: 'text', placeholder: '如 8000' },
+  { key: 'salary_max',   label: '期望薪资（最高）', type: 'text', placeholder: '如 12000' },
+  { key: 'availability', label: '到岗时间', type: 'select', options: ['随时到岗','1个月内','3个月内','半年内'] },
+  { key: 'job_type',     label: '工作性质', type: 'select', options: ['全职','兼职','实习','不限'] },
+];
+
+function renderExtended(ext) {
+  ext = ext || {};
+  const filled = EXTENDED_FIELDS.filter(f => ext[f.key]);
+  document.getElementById('extendedContent').innerHTML = filled.length === 0
+    ? '<div class="col-span-2 text-sm text-gray-400">暂未填写，点击「编辑」补充</div>'
+    : filled.map(f => `
+        <div>
+          <div class="label">${f.label}</div>
+          <div class="value">${esc(ext[f.key])}</div>
+        </div>`).join('');
+}
+
+function editExtended() {
+  const ext = profileData.extended || {};
+  document.getElementById('extendedContent').innerHTML = `
+    <div class="col-span-2 grid grid-cols-2 gap-3">
+      ${EXTENDED_FIELDS.map(f => {
+        if (f.type === 'select') {
+          const opts = f.options.map(o =>
+            `<option ${ext[f.key]===o ? 'selected' : ''}>${o}</option>`
+          ).join('');
+          return `<div>
+            <div class="label">${f.label}</div>
+            <select id="ext-${f.key}" class="${INP}">
+              <option value="">请选择</option>${opts}
+            </select>
+          </div>`;
+        } else {
+          return `<div>
+            <div class="label">${f.label}</div>
+            <input id="ext-${f.key}" class="${INP}" value="${esc(ext[f.key]||'')}" placeholder="${f.placeholder||''}">
+          </div>`;
+        }
+      }).join('')}
+    </div>
+    <div class="col-span-2 flex gap-2 mt-2">
+      <button onclick="saveExtended()" class="${BTN1}">保存</button>
+      <button onclick="renderExtended(profileData.extended)" class="${BTN2}">取消</button>
+    </div>`;
+}
+
+function saveExtended() {
+  const ext = {};
+  EXTENDED_FIELDS.forEach(f => {
+    const el = document.getElementById(`ext-${f.key}`);
+    if (el && el.value.trim()) ext[f.key] = el.value.trim();
+  });
+  profileData.extended = ext;
+  renderExtended(ext);
   saveProfile();
 }
 

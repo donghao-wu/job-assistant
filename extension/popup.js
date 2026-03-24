@@ -5,19 +5,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('portInput').addEventListener('change', async (e) => {
     chrome.storage.local.set({ port: e.target.value.trim() });
+    updateProfileLink();
     await loadProfiles();
   });
   document.getElementById('portInput').addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
       chrome.storage.local.set({ port: e.target.value.trim() });
+      updateProfileLink();
       await loadProfiles();
     }
   });
 
   await loadProfiles();
+  updateProfileLink();
 
   document.getElementById('fillBtn').addEventListener('click', fillForm);
 });
+
+function updateProfileLink() {
+  document.getElementById('openProfileLink').href = `${getBase()}/profile-page`;
+}
 
 function getBase() {
   return `http://localhost:${document.getElementById('portInput').value.trim() || '8005'}`;
@@ -59,6 +66,20 @@ function pageFillerFn(profile) {
     { kw: ['入学', '入读', 'enrollment'],                                     path: 'education.0.start' },
     { kw: ['公司', 'company', '工作单位', 'employer', '雇主'],                path: 'experience.0.company' },
     { kw: ['职位', 'position', 'title', 'job_title', '岗位', '职称'],        path: 'experience.0.title' },
+    // 扩展信息
+    { kw: ['性别', 'gender', 'sex'],                                          path: 'extended.gender' },
+    { kw: ['出生', 'birth', 'birthday', '生日', '出生日期', '出生年月'],      path: 'extended.birthdate' },
+    { kw: ['民族', 'ethnicity', 'nation'],                                    path: 'extended.ethnicity' },
+    { kw: ['政治', 'political', '政治面貌', '党员'],                          path: 'extended.political' },
+    { kw: ['籍贯', 'hometown', '户籍', '户口'],                               path: 'extended.hometown' },
+    { kw: ['健康', 'health', '健康状况'],                                     path: 'extended.health' },
+    { kw: ['婚姻', 'marriage', 'marital', '婚否'],                            path: 'extended.marriage' },
+    { kw: ['身高', 'height'],                                                 path: 'extended.height' },
+    { kw: ['体重', 'weight'],                                                 path: 'extended.weight' },
+    { kw: ['期望城市', '求职城市', 'target_city', '意向城市'],               path: 'extended.target_city' },
+    { kw: ['期望薪资', '薪资要求', 'salary', '薪酬期望'],                    path: 'extended.salary_min' },
+    { kw: ['到岗', '入职时间', 'availability', '最快到岗'],                  path: 'extended.availability' },
+    { kw: ['工作性质', 'job_type', '求职类型'],                               path: 'extended.job_type' },
   ];
 
   function getVal(p, path) {
