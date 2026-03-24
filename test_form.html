@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <title>插件测试表单</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    h2 { color: #1e40af; margin-bottom: 24px; }
+    .group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: #6b7280; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid #d1d5db;
+      border-radius: 6px; font-size: 14px; box-sizing: border-box;
+    }
+    h3 { margin: 24px 0 12px; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <h2>🧪 求职小助手 · 插件测试表单</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:24px">打开插件，选择档案，点「一键填入」，看看哪些字段被自动填写</p>
+
+  <h3>基本信息</h3>
+  <div class="group"><label for="name">姓名</label><input id="name" name="name" placeholder="请输入姓名"/></div>
+  <div class="group"><label for="email">邮箱</label><input id="email" name="email" type="email" placeholder="请输入邮箱"/></div>
+  <div class="group"><label for="phone">手机号码</label><input id="phone" name="phone" placeholder="请输入手机号"/></div>
+  <div class="group"><label for="city">所在城市</label><input id="city" name="city" placeholder="请输入城市"/></div>
+
+  <h3>教育经历</h3>
+  <div class="group"><label for="school">毕业院校</label><input id="school" name="school" placeholder="请输入学校名称"/></div>
+  <div class="group"><label for="major">所学专业</label><input id="major" name="major" placeholder="请输入专业"/></div>
+  <div class="group"><label for="degree">最高学历</label>
+    <select id="degree" name="degree">
+      <option value="">请选择</option>
+      <option value="大专">大专</option>
+      <option value="本科">本科</option>
+      <option value="硕士">硕士</option>
+      <option value="博士">博士</option>
+    </select>
+  </div>
+  <div class="group"><label for="graduation">毕业时间</label><input id="graduation" name="graduation" placeholder="如：2024-06"/></div>
+
+  <h3>工作经历</h3>
+  <div class="group"><label for="company">最近公司</label><input id="company" name="company" placeholder="请输入公司名称"/></div>
+  <div class="group"><label for="title">职位名称</label><input id="title" name="title" placeholder="请输入职位"/></div>
+
+  <h3>其他（预期不会自动填写）</h3>
+  <div class="group"><label for="salary">期望薪资</label><input id="salary" name="salary" placeholder="请输入期望薪资"/></div>
+  <div class="group"><label for="intro">自我介绍</label><textarea id="intro" name="intro" rows="4" placeholder="请输入自我介绍"></textarea></div>
+</body>
+</html>

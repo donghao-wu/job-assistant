@@ -1,0 +1,189 @@
+// ─── 初始化 ───────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  const stored = await chrome.storage.local.get('port');
+  if (stored.port) document.getElementById('portInput').value = stored.port;
+
+  document.getElementById('portInput').addEventListener('change', async (e) => {
+    chrome.storage.local.set({ port: e.target.value.trim() });
+    await loadProfiles();
+  });
+  document.getElementById('portInput').addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      chrome.storage.local.set({ port: e.target.value.trim() });
+      await loadProfiles();
+    }
+  });
+
+  await loadProfiles();
+
+  document.getElementById('fillBtn').addEventListener('click', fillForm);
+});
+
+function getBase() {
+  return `http://localhost:${document.getElementById('portInput').value.trim() || '8005'}`;
+}
+
+// ─── 加载档案列表 ─────────────────────────────────────────
+async function loadProfiles() {
+  const sel = document.getElementById('profileSelect');
+  try {
+    const res = await fetch(`${getBase()}/profiles`);
+    const profiles = await res.json();
+    if (profiles.length === 0) {
+      sel.innerHTML = '<option value="">暂无档案，请先上传简历</option>';
+      return;
+    }
+    sel.innerHTML = profiles.map(p =>
+      `<option value="${p.id}">${p.name}</option>`
+    ).join('');
+    showStatus(`✅ 已连接，${profiles.length} 份档案`, 'success');
+  } catch (e) {
+    sel.innerHTML = '<option value="">⚠️ 连接失败</option>';
+    showStatus(`无法连接 ${getBase()}，请检查端口`, 'error');
+  }
+}
+
+// ─── 填表逻辑（直接注入到页面执行）──────────────────────
+function pageFillerFn(profile) {
+  const KEYWORD_MAP = [
+    { kw: ['姓名', 'name', 'full_name', 'realname', 'fullname', '真实姓名'], path: 'basic.name' },
+    { kw: ['邮箱', 'email', 'mail', '电子邮件', 'e-mail'],                   path: 'basic.email' },
+    { kw: ['手机', 'phone', 'mobile', 'tel', '电话', '联系方式', '联系电话'], path: 'basic.phone' },
+    { kw: ['城市', 'city', 'location', '所在城市', '居住城市', '现居城市'],   path: 'basic.location' },
+    { kw: ['linkedin'],                                                       path: 'basic.linkedin' },
+    { kw: ['学校', 'school', 'university', 'college', '院校', '毕业院校'],    path: 'education.0.school' },
+    { kw: ['学历', 'degree', 'education_level', '最高学历', '学位'],          path: 'education.0.degree' },
+    { kw: ['专业', 'major', 'subject', '所学专业'],                           path: 'education.0.major' },
+    { kw: ['gpa', '绩点'],                                                    path: 'education.0.gpa' },
+    { kw: ['毕业时间', '毕业年份', 'graduation', '毕业'],                     path: 'education.0.end' },
+    { kw: ['入学', '入读', 'enrollment'],                                     path: 'education.0.start' },
+    { kw: ['公司', 'company', '工作单位', 'employer', '雇主'],                path: 'experience.0.company' },
+    { kw: ['职位', 'position', 'title', 'job_title', '岗位', '职称'],        path: 'experience.0.title' },
+  ];
+
+  function getVal(p, path) {
+    let v = p;
+    for (const k of path.split('.')) {
+      if (!v) return '';
+      v = Array.isArray(v) ? v[parseInt(k)] : v[k];
+    }
+    if (v === null || v === undefined || v === '无') return '';
+    return String(v);
+  }
+
+  function setVal(el, value) {
+    if (!value) return;
+    if (el.tagName === 'SELECT') {
+      for (const opt of el.options) {
+        if (opt.text.includes(value) || opt.value === value || value.includes(opt.text)) {
+          el.value = opt.value;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          return;
+        }
+      }
+      return;
+    }
+    const proto = el.tagName === 'TEXTAREA'
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    if (setter) setter.call(el, value);
+    else el.value = value;
+    el.dispatchEvent(new Event('input',  { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  const els = document.querySelectorAll(
+    'input[type="text"], input[type="email"], input[type="tel"],' +
+    'input[type="number"], input[type="url"], input:not([type]),' +
+    'textarea, select'
+  );
+
+  let filled = 0, highlighted = 0;
+
+  els.forEach(el => {
+    if (['hidden','submit','button','checkbox','radio'].includes(el.type)) return;
+    if (el.disabled || el.readOnly) return;
+    if (el.value && el.value.trim()) return;
+
+    const parts = [el.name, el.id, el.placeholder, el.getAttribute('aria-label')];
+    if (el.id) {
+      const lbl = document.querySelector(`label[for="${el.id}"]`);
+      if (lbl) parts.push(lbl.textContent);
+    }
+    const wrap = el.closest('label');
+    if (wrap) parts.push(wrap.textContent);
+    const prev = el.previousElementSibling;
+    if (prev) parts.push(prev.textContent);
+    const combined = parts.filter(Boolean).join(' ').toLowerCase();
+
+    let matched = false;
+    for (const m of KEYWORD_MAP) {
+      if (m.kw.some(k => combined.includes(k.toLowerCase()))) {
+        const val = getVal(profile, m.path);
+        if (val) { setVal(el, val); filled++; }
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      el.style.outline = '2px solid #fbbf24';
+      el.style.backgroundColor = '#fffbeb';
+      el.title = '⚠️ 请手动填写';
+      highlighted++;
+    }
+  });
+
+  return { filled, highlighted };
+}
+
+// ─── 一键填入 ─────────────────────────────────────────────
+async function fillForm() {
+  const profileId = document.getElementById('profileSelect').value;
+  if (!profileId) { showStatus('请先选择档案', 'error'); return; }
+
+  const btn = document.getElementById('fillBtn');
+  btn.disabled = true;
+  btn.textContent = '填入中...';
+  showStatus('获取档案数据...', 'info');
+
+  try {
+    const res = await fetch(`${getBase()}/profiles/${profileId}`);
+    if (!res.ok) throw new Error(`获取档案失败 (${res.status})`);
+    const profile = await res.json();
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) throw new Error('无法获取当前页面');
+
+    showStatus('注入填表脚本...', 'info');
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageFillerFn,
+      args: [profile]
+    });
+
+    const result = results?.[0]?.result;
+    if (result) {
+      const msg = `✅ 已填入 ${result.filled} 个字段` +
+        (result.highlighted > 0 ? `\n⚠️ ${result.highlighted} 个字段已高亮，请手动填写` : '');
+      showStatus(msg, 'success');
+    } else {
+      showStatus('完成，但未收到结果', 'info');
+    }
+  } catch (e) {
+    showStatus(`❌ ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '一键填入';
+  }
+}
+
+// ─── 状态显示 ─────────────────────────────────────────────
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = `status ${type}`;
+  el.style.display = 'block';
+  el.style.whiteSpace = 'pre-line';
+}

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 import pdfplumber
 import docx
@@ -17,6 +18,13 @@ from database import (
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 API_KEY = os.getenv("SILICONFLOW_API_KEY")
 BASE_URL = "https://api.siliconflow.cn/v1"
@@ -200,4 +208,10 @@ async def index():
 @app.get("/profile-page", response_class=HTMLResponse)
 async def profile_page():
     with open("profile.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/test-form", response_class=HTMLResponse)
+async def test_form():
+    with open("test_form.html", "r", encoding="utf-8") as f:
         return f.read()

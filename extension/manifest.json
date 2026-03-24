@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "求职小助手",
+  "version": "1.0",
+  "description": "一键填写网申表单，告别重复填表",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://localhost/*", "https://*/*", "http://*/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "求职小助手"
+  }
+}

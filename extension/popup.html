@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #111827;
+    }
+    .header {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      padding: 16px;
+    }
+    .header h1 { font-size: 15px; font-weight: 700; }
+    .header p { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+    .body { padding: 16px; }
+    .label { font-size: 11px; color: #6b7280; margin-bottom: 6px; }
+    select {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #374151;
+      background: white;
+      outline: none;
+      cursor: pointer;
+    }
+    select:focus { border-color: #3b82f6; }
+    .btn {
+      width: 100%;
+      margin-top: 12px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { background: #93c5fd; cursor: not-allowed; }
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+      display: none;
+    }
+    .status.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    .status.error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .status.info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 14px 0; }
+    .port-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .port-row label { font-size: 11px; color: #9ca3af; white-space: nowrap; }
+    .port-row input {
+      flex: 1;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      color: #6b7280;
+      outline: none;
+    }
+    .port-row input:focus { border-color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📋 求职小助手</h1>
+    <p>一键填写网申表单</p>
+  </div>
+  <div class="body">
+    <div class="label">选择档案</div>
+    <select id="profileSelect">
+      <option value="">加载中...</option>
+    </select>
+
+    <button class="btn" id="fillBtn">一键填入</button>
+
+    <div class="status" id="status"></div>
+
+    <hr class="divider"/>
+
+    <div class="port-row">
+      <label>服务端口</label>
+      <input type="text" id="portInput" value="8003" placeholder="8003"/>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
