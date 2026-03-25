@@ -78,6 +78,121 @@ function pageFillerFn(profile) {
   }
 
   // ════════════════════════════════════════════════════════
+  // ── 58同城简历创建页（jianli.58.com/resumebase）───────────
+  // 自定义 jQuery 下拉，选项为 <a class="select-option">
+  // ════════════════════════════════════════════════════════
+  if (host.includes('58.com') && document.querySelector('li.birthday.cate-list, li.education.cate-list')) {
+    let filled = 0, highlighted = 0;
+
+    // 填写普通文本 input
+    function set58Input(selector, value) {
+      if (!value) return false;
+      const el = document.querySelector(selector);
+      if (!el || el.value.trim()) return false;
+      el.value = value;
+      el.dispatchEvent(new Event('input',  { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    // 点击 cate-list 里匹配文字的 select-option
+    function set58Select(liClass, value) {
+      if (!value) return false;
+      const li = document.querySelector(`li.${liClass}.cate-list`);
+      if (!li) return false;
+      const opt = Array.from(li.querySelectorAll('a.select-option'))
+        .find(a => {
+          const t = a.textContent.trim();
+          return t === value || t.includes(value) || value.includes(t);
+        });
+      if (!opt) return false;
+      opt.click();
+      return true;
+    }
+
+    // 性别（.sex-input div）
+    function set58Gender(gender) {
+      if (!gender) return false;
+      const isFemale = gender === '女' || gender.toLowerCase() === 'female';
+      const target = Array.from(document.querySelectorAll('.sex-input'))
+        .find(el => isFemale ? el.textContent.trim() === '女' : el.textContent.trim() === '男');
+      if (!target || target.classList.contains('selected')) return false;
+      target.click();
+      return true;
+    }
+
+    // 期望薪资：将 salary_min 映射到 58同城的薪资段
+    function mapSalary(val) {
+      if (!val) return '';
+      const n = parseInt(String(val).replace(/[^\d]/g, ''));
+      if (isNaN(n) || n === 0) return '面议';
+      if (n < 1000)  return '1000元以下';
+      if (n < 2000)  return '1000-2000元';
+      if (n < 3000)  return '2000-3000元';
+      if (n < 5000)  return '3000-5000元';
+      if (n < 8000)  return '5000-8000元';
+      if (n < 12000) return '8000-12000元';
+      if (n < 20000) return '12000-20000元';
+      if (n < 25000) return '20000-25000元';
+      return '25000元以上';
+    }
+
+    // 学历映射
+    function mapDegree(val) {
+      if (!val) return '';
+      if (val.includes('博士'))        return '博士';
+      if (val.includes('硕士') || val.includes('研究生')) return '硕士';
+      if (val.includes('MBA') || val.includes('EMBA')) return 'MBA/EMBA';
+      if (val.includes('本科') || val.includes('学士')) return '本科';
+      if (val.includes('大专') || val.includes('专科')) return '大专';
+      if (val.includes('中专') || val.includes('技校')) return '中专/技校';
+      if (val.includes('高中'))        return '高中';
+      return val;
+    }
+
+    // 工作年限映射（应届生 / 实习生 → 应届生）
+    function mapWorkTime(val) {
+      if (!val) return '应届生';  // 默认应届生
+      if (val.includes('应届') || val.includes('实习') || val.includes('在校')) return '应届生';
+      if (val.includes('无') || val === '0') return '无经验';
+      return val;
+    }
+
+    // 从出生日期中提取年份
+    function birthYear(bd) {
+      if (!bd) return '';
+      const m = String(bd).match(/(\d{4})/);
+      return m ? m[1] : '';
+    }
+
+    // ── 填写各字段 ────────────────────────────────────────
+    if (set58Input('input[name="truename"]', gv('basic.name'))) filled++;
+    if (set58Gender(gv('extended.gender'))) filled++;
+    if (set58Select('birthday',  birthYear(gv('extended.birthdate')))) filled++;
+    if (set58Select('education', mapDegree(gv('education.0.degree')))) filled++;
+    if (set58Select('workTime',  mapWorkTime(gv('extended.job_type')))) filled++;
+    if (set58Select('salary',    mapSalary(gv('extended.salary_min')))) filled++;
+
+    // ── 高亮未填字段 ──────────────────────────────────────
+    // 文本 inputs
+    document.querySelectorAll('input[name="truename"]').forEach(el => {
+      if (!el.value.trim()) { el.style.outline = '2px solid #fbbf24'; highlighted++; }
+    });
+    // 未选中的下拉（com-select-left 为空）
+    document.querySelectorAll('li.salary.cate-list .com-select-left.values,' +
+      'li.birthday.cate-list .com-select-left.values,' +
+      'li.workTime.cate-list .com-select-left.values,' +
+      'li.education.cate-list .com-select-left.values').forEach(el => {
+      if (!el.textContent.trim()) {
+        el.closest('.com-select')?.style && (el.closest('.com-select').style.outline = '2px solid #fbbf24');
+        highlighted++;
+      }
+    });
+
+    return { filled, highlighted };
+  }
+
+  // ════════════════════════════════════════════════════════
   // ── Element UI 通用适配器（el-input__inner）──────────────
   // 适用平台：xiaoyuan.zhaopin.com / shixiseng.com /
   //           campus.51job.com / 等一切使用 Element UI 的校招表单
