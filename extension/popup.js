@@ -54,91 +54,142 @@ async function loadProfiles() {
 function pageFillerFn(profile) {
   const host = window.location.hostname;
 
-  // ── 智联招聘专项适配 ──────────────────────────────────
+  // ── 智联校园网申表（xiaoyuan.zhaopin.com）──────────────
+  if (host.includes('xiaoyuan.zhaopin.com')) {
+    return new Promise(resolve => {
+      let filled = 0;
+
+      function gv(path) {
+        let v = profile;
+        for (const k of path.split('.')) {
+          if (v == null) return '';
+          v = Array.isArray(v) ? v[parseInt(k)] : v[k];
+        }
+        return (v == null || v === '无') ? '' : String(v);
+      }
+
+      function setNative(el, value) {
+        if (!value || !el || el.value.trim() || el.readOnly) return false;
+        const s = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (s) s.call(el, value); else el.value = value;
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+
+      function findInput(placeholder) {
+        return Array.from(document.querySelectorAll('input.el-input__inner'))
+          .find(el => el.placeholder === placeholder && !el.value.trim() && !el.readOnly);
+      }
+
+      function calcAge(bd) {
+        if (!bd) return '';
+        const b = new Date(bd.length === 7 ? bd + '-01' : bd);
+        const n = new Date();
+        let a = n.getFullYear() - b.getFullYear();
+        if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
+        return isNaN(a) ? '' : String(a);
+      }
+
+      function mapPolitical(v) {
+        if (!v) return '';
+        if (v.includes('共青团') || v === '团员') return '团员';
+        if (v.includes('中共') || v.includes('党员')) return '中共党员（含预备党员）';
+        if (v.includes('民主党派')) return '民主党派';
+        if (v.includes('无党派')) return '无党派人士';
+        return v;
+      }
+
+      function mapHealth(v) {
+        if (!v) return '';
+        if (v === '良好') return '良好';
+        if (v === '一般') return '健康';
+        if (v === '较差') return '有病史';
+        return v;
+      }
+
+      // ① 文本字段（同步填入）
+      [
+        ['请填写您的真实姓名',         gv('basic.name')],
+        ['请填写有效的电子邮箱地址',   gv('basic.email')],
+        ['请填写通信地址',             gv('basic.location')],
+        ['年龄',                       calcAge(gv('extended.birthdate'))],
+      ].forEach(([ph, val]) => {
+        if (setNative(findInput(ph), val)) filled++;
+      });
+
+      // ② 下拉字段（异步依次打开选中）
+      const dropdowns = [
+        { ph: '请选择民族',         val: gv('extended.ethnicity') },
+        { ph: '请选择您的健康状况', val: mapHealth(gv('extended.health')) },
+        { ph: '请选择您的婚姻状况', val: gv('extended.marriage') },
+        { ph: '请选择您的政治面貌', val: mapPolitical(gv('extended.political')) },
+      ].filter(d => d.val);
+
+      let idx = 0;
+      function next() {
+        if (idx >= dropdowns.length) {
+          // 高亮剩余未填字段
+          let hl = 0;
+          document.querySelectorAll('input.el-input__inner').forEach(el => {
+            if (!el.value.trim() && !el.readOnly) {
+              el.style.outline = '2px solid #fbbf24';
+              el.style.backgroundColor = '#fffbeb';
+              hl++;
+            }
+          });
+          resolve({ filled, highlighted: hl });
+          return;
+        }
+        const { ph, val } = dropdowns[idx++];
+        const input = findInput(ph);
+        if (!input) { next(); return; }
+
+        // 点击打开下拉
+        (input.closest('.el-select') || input.parentElement).click();
+        setTimeout(() => {
+          const match = Array.from(document.querySelectorAll('.el-select-dropdown__item'))
+            .find(o => { const t = o.textContent.trim(); return t === val || t.includes(val) || val.includes(t); });
+          if (match) { match.click(); filled++; }
+          document.body.click(); // 关闭下拉
+          setTimeout(next, 150);
+        }, 350);
+      }
+      next();
+    });
+  }
+
+  // ── 智联简历编辑页（i.zhaopin.com，iView 组件）──────────
   if (host.includes('zhaopin.com')) {
     let filled = 0, highlighted = 0;
-
-    function getVal(p, path) {
-      let v = p;
-      for (const k of path.split('.')) {
-        if (!v) return '';
-        v = Array.isArray(v) ? v[parseInt(k)] : v[k];
-      }
-      return (v === null || v === undefined || v === '无') ? '' : String(v);
+    function gv2(path) {
+      let v = profile;
+      for (const k of path.split('.')) { if (!v) return ''; v = Array.isArray(v) ? v[parseInt(k)] : v[k]; }
+      return (v == null || v === '无') ? '' : String(v);
     }
-
-    function setIvuInput(el, value) {
-      if (!value || !el) return false;
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-      if (setter) setter.call(el, value);
-      else el.value = value;
-      el.dispatchEvent(new Event('input',  { bubbles: true }));
+    function setIvu(el, value) {
+      if (!value || !el || el.value.trim()) return false;
+      const s = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      if (s) s.call(el, value); else el.value = value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
       return true;
     }
-
-    // 姓名
-    const nameEl = document.querySelector('input.ivu-input[placeholder*="真实姓名"]');
-    if (nameEl && !nameEl.value.trim()) {
-      if (setIvuInput(nameEl, getVal(profile, 'basic.name'))) filled++;
-    }
-
-    // 出生年月
-    const birthEl = document.querySelector('input.ivu-input[placeholder*="生日"]');
-    if (birthEl && !birthEl.value.trim()) {
-      if (setIvuInput(birthEl, getVal(profile, 'extended.birthdate'))) filled++;
-    }
-
-    // 邮箱
-    const emailEl = document.querySelector('input[placeholder*="邮箱"]');
-    if (emailEl && !emailEl.value.trim()) {
-      if (setIvuInput(emailEl, getVal(profile, 'basic.email'))) filled++;
-    }
-
-    // 性别 - radio 按钮
-    const genderVal = getVal(profile, 'extended.gender');
-    if (genderVal) {
-      document.querySelectorAll('.a-radio, [class*="radio-item"], [class*="radio-wrap"]').forEach(wrap => {
-        const label = wrap.querySelector('span, label');
-        if (label && label.textContent.trim() === genderVal) {
-          const radio = wrap.querySelector('input[type="radio"]');
-          if (radio) { radio.click(); filled++; }
-        }
-      });
-    }
-
-    // 政治面貌 - iView Select（点击打开 + 选中选项）
-    const politicalVal = getVal(profile, 'extended.political');
-    if (politicalVal) {
-      const selects = document.querySelectorAll('.ivu-select');
-      selects.forEach(sel => {
-        const placeholder = sel.querySelector('.ivu-select-placeholder');
-        if (placeholder && placeholder.textContent.includes('政治面貌')) {
-          sel.click(); // 打开下拉
-          setTimeout(() => {
-            const opts = document.querySelectorAll('.ivu-select-dropdown li, .ivu-select-item');
-            opts.forEach(opt => {
-              if (opt.textContent.trim() === politicalVal) {
-                opt.click(); filled++;
-              }
-            });
-          }, 300);
-        }
-      });
-    }
-
-    // 高亮还未填的字段
+    [
+      ['input.ivu-input[placeholder*="真实姓名"]', 'basic.name'],
+      ['input.ivu-input[placeholder*="生日"]',     'extended.birthdate'],
+      ['input[placeholder*="邮箱"]',               'basic.email'],
+    ].forEach(([sel, path]) => {
+      const el = document.querySelector(sel);
+      if (setIvu(el, gv2(path))) filled++;
+    });
     document.querySelectorAll('input.ivu-input, .ivu-select').forEach(el => {
       const val = el.tagName === 'INPUT' ? el.value : el.querySelector('.ivu-select-selected-value')?.textContent;
-      if (!val || !val.trim()) {
-        el.style.outline = '2px solid #fbbf24';
-        el.style.backgroundColor = '#fffbeb';
-        highlighted++;
-      }
+      if (!val?.trim()) { el.style.outline = '2px solid #fbbf24'; el.style.backgroundColor = '#fffbeb'; highlighted++; }
     });
-
     return { filled, highlighted };
   }
+
   // ── 通用填表（下方原有逻辑）─────────────────────────────
 
   const KEYWORD_MAP = [
