@@ -77,9 +77,9 @@ function pageFillerFn(profile) {
         return true;
       }
 
-      function findInput(placeholder) {
+      function findInput(placeholder, allowReadonly) {
         return Array.from(document.querySelectorAll('input.el-input__inner'))
-          .find(el => el.placeholder === placeholder && !el.value.trim() && !el.readOnly);
+          .find(el => el.placeholder === placeholder && !el.value.trim() && (allowReadonly || !el.readOnly));
       }
 
       function calcAge(bd) {
@@ -129,7 +129,7 @@ function pageFillerFn(profile) {
       // ② 下拉字段
       function setElSelect(ph, val) {
         if (!val) return false;
-        const input = findInput(ph);
+        const input = findInput(ph, true); // readonly 的 select input 也要找到
         if (!input) return false;
         const wrapper = input.closest('.el-select');
         if (!wrapper) return false;
