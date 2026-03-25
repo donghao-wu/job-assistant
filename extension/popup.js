@@ -328,6 +328,310 @@ function pageFillerFn(profile) {
   }
 
   // ════════════════════════════════════════════════════════
+  // ── xiaoyuan.zhaopin.com 网申多分区适配器（El UI / Vue2）─
+  // 顺序填写：个人信息 → 教育经历 → 实习/工作经历 → 语言能力 → 专业技能
+  // 每个分区需先点击导航、点击"立即添加"、填写、再点击"添 加"保存
+  // ════════════════════════════════════════════════════════
+  if (host.includes('xiaoyuan.zhaopin.com') && document.querySelector('li.resume-menu-item')) {
+    return new Promise(async resolve => {
+      let filled = 0;
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+      // ── 原生 setter + Vue2 响应式（兼容 textarea 及无 __vue__ 的 el-input）──
+      function setNative(el, value) {
+        if (!el || !value || value === '无') return false;
+        const isTA = el.tagName === 'TEXTAREA';
+        // 先通过原生 setter 更新 DOM 值
+        const proto = isTA ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        nativeSetter ? nativeSetter.call(el, value) : (el.value = value);
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        // 再尝试通过 .el-input 包裹层的 Vue 实例 $emit 更新响应式状态
+        // （针对 input.__vue__ 为空、但父级 div.el-input 有 __vue__ 的情况）
+        const elInputDiv = isTA ? null : el.closest('.el-input');
+        const elInputVm  = elInputDiv?.__vue__;
+        if (elInputVm?.$emit) {
+          elInputVm.$emit('input',  value);
+          elInputVm.$emit('change', value);
+        }
+        return true;
+      }
+
+      // ── el-select 按 label 文字选中（精确优先，再回退模糊）
+      function elSel(selEl, labelText) {
+        if (!labelText || !selEl?.__vue__?.options) return false;
+        const opts = selEl.__vue__.options;
+        // 精确匹配优先，避免"学士"误中"双学士"等
+        const opt = opts.find(o => String(o.currentLabel || o.label || '') === labelText)
+                 || opts.find(o => { const l = String(o.currentLabel || o.label || ''); return l.includes(labelText) || labelText.includes(l); });
+        if (opt && selEl.__vue__.handleOptionSelect) {
+          selEl.__vue__.handleOptionSelect(opt, true);
+          return true;
+        }
+        return false;
+      }
+
+      // ── 将各种常见日期字符串统一解析为 Date 对象 ──────────
+      function parseDate(dateStr) {
+        if (!dateStr || dateStr === '无') return null;
+        let s = dateStr.trim();
+        // 英文月份：January 2022 / Jan 2022
+        const EN_MONTHS = ['january','february','march','april','may','june',
+                           'july','august','september','october','november','december'];
+        const mEn = s.match(/^([a-zA-Z]+)\s+(\d{4})$/);
+        if (mEn) {
+          const mi = EN_MONTHS.indexOf(mEn[1].toLowerCase());
+          if (mi >= 0) s = `${mEn[2]}-${String(mi+1).padStart(2,'0')}-01`;
+        }
+        // 中文格式：2020年9月 / 2020年09月
+        s = s.replace(/(\d{4})\s*年\s*(\d{1,2})\s*月?/, (_, y, m) => `${y}-${m.padStart(2,'0')}-01`);
+        // 点分格式：2020.09
+        s = s.replace(/^(\d{4})\.(\d{1,2})$/, (_, y, m) => `${y}-${m.padStart(2,'0')}-01`);
+        // 斜线格式：2020/09
+        s = s.replace(/^(\d{4})\/(\d{1,2})$/, (_, y, m) => `${y}-${m.padStart(2,'0')}-01`);
+        // 补齐月份：2020-9 → 2020-09
+        s = s.replace(/^(\d{4})-(\d)$/, (_, y, m) => `${y}-0${m}-01`);
+        // 仅年份：2020 → 2020-01-01
+        if (/^\d{4}$/.test(s)) s += '-01-01';
+        // 年月格式：2020-09 → 2020-09-01
+        if (/^\d{4}-\d{2}$/.test(s)) s += '-01';
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // ── 从 input 向上遍历 DOM 找到 ElDatePicker Vue 实例 ──
+      function findDatePickerVm(input) {
+        let node = input.parentElement;
+        let elInputVm = null;
+        while (node && node !== document.body) {
+          const vm = node.__vue__;
+          if (vm) {
+            const name = vm.$options?.name;
+            if (name === 'ElDatePicker') return vm;
+            if (name === 'ElInput') elInputVm = vm; // 记住 ElInput，继续往上找
+          }
+          node = node.parentElement;
+        }
+        // 找到 ElInput 但没找到 ElDatePicker → 用其 $parent
+        return elInputVm?.$parent || null;
+      }
+
+      // ── el-date-picker 通过 Vue emit 设置值（绕过 readonly input）
+      function setDateEl(input, dateStr) {
+        if (!input || !dateStr || dateStr === '无') return false;
+        const d = parseDate(dateStr);
+        if (!d) { console.warn('[填表] 日期解析失败:', dateStr); return false; }
+        const dpVm = findDatePickerVm(input);
+        console.log('[填表] setDateEl →', dateStr, '| dpVmName:', dpVm?.$options?.name);
+        if (!dpVm) { console.warn('[填表] 找不到 dpVm'); return false; }
+        dpVm.$emit('input', d);
+        dpVm.$emit('change', d);
+        console.log('[填表] date emitted, input.value now:', input.value);
+        return true;
+      }
+
+      // ── 按 placeholder 关键词找最后一个 input（多条目时取最新行）
+      function lastPh(ph) {
+        const all = Array.from(document.querySelectorAll('.el-input__inner'))
+          .filter(i => i.placeholder.includes(ph));
+        return all[all.length - 1];
+      }
+
+      // ── 导航至分区，处理弹出的保存提示 ──────────────────
+      async function navTo(idx) {
+        document.querySelectorAll('li.resume-menu-item')[idx]?.click();
+        await sleep(500);
+        const saveBtn = Array.from(document.querySelectorAll('button'))
+          .find(b => b.textContent.trim() === '保存并跳转');
+        const skipBtn = Array.from(document.querySelectorAll('button'))
+          .find(b => b.textContent.trim() === '不保存');
+        if (saveBtn)      { saveBtn.click(); await sleep(700); }
+        else if (skipBtn) { skipBtn.click(); await sleep(300); }
+      }
+
+      // ── 打开分区表单（有则编辑第一条，无则新增）────────
+      async function openForEdit() {
+        // 已在编辑态（有可填写的 input）
+        const editable = Array.from(document.querySelectorAll('.el-input__inner'))
+          .some(i => !i.readOnly || i.closest('.el-date-editor'));
+        if (editable) return;
+        // 有已有条目 → 点击"编辑"进入编辑态
+        const editSpan = Array.from(document.querySelectorAll('.icon-box .icon-text'))
+          .find(s => s.textContent.trim() === '编辑');
+        if (editSpan) { editSpan.closest('.icon-box')?.click(); await sleep(400); return; }
+        // 空分区 → 点击"立即添加"
+        document.querySelector('.add-now')?.click();
+        await sleep(400);
+      }
+
+      // ── 新增一条条目（保存后点"+"添加下一条）────────────
+      async function addNew() {
+        const addNow = document.querySelector('.add-now');
+        const addIcon = Array.from(document.querySelectorAll('.icon-box .icon-text'))
+          .find(s => s.textContent.trim() === '添加');
+        (addNow || addIcon?.closest('.icon-box'))?.click();
+        await sleep(400);
+      }
+
+      // ── 点击当前表单的主保存按钮（添 加 / 保存 / 确定）─
+      async function saveCur() {
+        const btn = Array.from(document.querySelectorAll('button.el-button--primary'))
+          .find(b => {
+            const t = b.textContent.replace(/\s/g, '');
+            return (t.includes('添加') || t.includes('保存') || t.includes('确定'))
+                && !t.includes('立即投递') && !b.disabled;
+          });
+        if (!btn) return;
+        btn.click();
+        // 轮询等待 API 响应完成（最多 8s，按钮 is-loading 消失即完成）
+        for (let i = 0; i < 16; i++) {
+          await sleep(500);
+          if (!document.querySelector('button.el-button--primary.is-loading')) break;
+        }
+        await sleep(300);
+      }
+
+      // ── 学历 / 学位 映射 ─────────────────────────────────
+      const toXueli = d => {
+        if (!d) return '';
+        if (d.includes('博士')) return '博士研究生';
+        if (d.includes('MBA') || d.includes('EMBA')) return 'MBA';
+        if (d.includes('硕士') || d.includes('研究生')) return '硕士研究生';
+        if (d.includes('大专') || d.includes('专科')) return '大专';
+        return '本科';
+      };
+      const toXuewei = d => {
+        if (!d) return '';
+        if (d.includes('博士')) return '博士';
+        if (d.includes('MBA')) return 'MBA';
+        if (d.includes('硕士') || d.includes('研究生')) return '硕士';
+        if (d.includes('大专') || d.includes('专科')) return '其他';
+        return '学士';
+      };
+
+      // ══ 0. 个人信息 ══════════════════════════════════════
+      // 该分区由智联招聘账号数据自动填充，所有字段均以 labelOnly-text 显示
+      // 无可编辑的 el-input__inner，跳过即可
+
+      // ══ 1. 教育经历 ══════════════════════════════════════
+      await navTo(1);
+      const edu = profile.education?.[0];
+      if (edu) {
+        console.log('[填表] edu=', JSON.stringify(edu));
+        await openForEdit();
+        await sleep(800); // 等 Vue 组件挂载完毕再填
+        // 只填空字段，不覆盖已有值
+        const s0 = lastPh('学校全称');
+        if (s0 && !s0.value.trim() && edu.school && edu.school !== '无') if (setNative(s0, edu.school)) filled++;
+        const s1 = lastPh('入学时间');
+        console.log('[填表] s1 found:', !!s1, 'val:', s1?.value, 'edu.start:', edu.start);
+        if (s1 && !s1.value.trim() && edu.start && edu.start !== '无') {
+          const ok = setDateEl(s1, edu.start);
+          console.log('[填表] s1 setDateEl ok:', ok, '→ s1.value:', s1?.value);
+          if (ok) filled++;
+        }
+        const s2 = lastPh('毕业时间');
+        if (s2 && !s2.value.trim() && edu.end && edu.end !== '无') if (setDateEl(s2, edu.end)) filled++;
+        const s3 = lastPh('院系');
+        if (s3 && !s3.value.trim()) {
+          const deptVal = edu.major && edu.major !== '无' ? edu.major : edu.school;
+          if (deptVal) { setNative(s3, deptVal); filled++; }
+        }
+        // 专业名称（placeholder='请填写专业名称'）
+        const s4 = lastPh('专业名称');
+        if (s4 && !s4.value.trim() && edu.major && edu.major !== '无') { setNative(s4, edu.major); filled++; }
+        // el-select 字段：仅填空值
+        document.querySelectorAll('.el-select').forEach(s => {
+          const inp = s.querySelector('.el-input__inner');
+          const ph  = inp?.placeholder || '';
+          if (inp?.value?.trim()) return; // 已有值跳过
+          if (ph.includes('教育类型'))                        elSel(s, '全日制统分统招');
+          else if (ph.includes('学位') && !ph.includes('学历')) elSel(s, toXuewei(edu.degree));
+          else if (ph.includes('学历'))                       elSel(s, toXueli(edu.degree));
+          else if (ph.includes('年级排名'))                   elSel(s, '前20%');
+          else if (ph.includes('海外'))                       elSel(s, '无');
+          else if (ph.includes('专升本'))                     elSel(s, '否');
+        });
+        await saveCur();
+      }
+
+      // ══ 3. 实习/工作经历 ════════════════════════════════
+      await navTo(3);
+      let firstExp = true;
+      for (const exp of (profile.experience || [])) {
+        if (!exp.company || exp.company === '无') continue;
+        if (firstExp) { await openForEdit(); firstExp = false; }
+        else { await addNew(); }
+        const e0 = lastPh('单位的名称');
+        if (e0 && !e0.value.trim()) if (setNative(e0, exp.company)) filled++;
+        const e1 = lastPh('入职时间');
+        if (e1 && !e1.value.trim() && exp.start && exp.start !== '无') if (setDateEl(e1, exp.start)) filled++;
+        const e2 = lastPh('离职时间');
+        if (e2 && !e2.value.trim() && exp.end && exp.end !== '无') if (setDateEl(e2, exp.end)) filled++;
+        const e3 = lastPh('职务');
+        if (e3 && !e3.value.trim() && exp.title && exp.title !== '无') if (setNative(e3, exp.title)) filled++;
+        // 工作类型 select（2=全职, 1=兼职, 4=实习）
+        const typeVal = exp.type?.includes('全职') ? 2 : exp.type?.includes('兼职') ? 1 : 4;
+        const typeSel = Array.from(document.querySelectorAll('.el-select'))
+          .find(s => s.querySelector('.el-input__inner')?.placeholder.includes('工作类型'));
+        if (typeSel?.__vue__?.options) {
+          const opt = typeSel.__vue__.options.find(o => o.value === typeVal);
+          if (opt) typeSel.__vue__.handleOptionSelect(opt, true);
+        }
+        // 工作描述 textarea
+        const ta = Array.from(document.querySelectorAll('textarea'))
+          .find(t => t.placeholder.includes('工作内容'));
+        if (ta && !ta.value.trim() && exp.bullets?.length) {
+          setNative(ta, exp.bullets.join('\n'));
+          filled++;
+        }
+        await saveCur();
+      }
+
+      // ══ 4. 语言能力 ══════════════════════════════════════
+      await navTo(4);
+      const langs = gv('skills.languages');
+      if (langs) {
+        await openForEdit();
+        const certEl = lastPh('英语证书');
+        if (certEl && !certEl.value.trim()) { setNative(certEl, langs); filled++; }
+        const ls = Array.from(document.querySelectorAll('.el-select'));
+        // ls[0]=语种(英语=1), ls[1]=听说能力(熟练=3), ls[2]=读写能力(熟练=3)
+        [1, 3, 3].forEach((val, i) => {
+          if (!ls[i]?.__vue__?.options) return;
+          const o = ls[i].__vue__.options.find(op => op.value === val);
+          if (o) ls[i].__vue__.handleOptionSelect(o, true);
+        });
+        await saveCur();
+      }
+
+      // ══ 5. 专业技能 ══════════════════════════════════════
+      await navTo(5);
+      const techList = gv('skills.technical').split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      let firstSkill = true;
+      for (const skill of techList.slice(0, 5)) {
+        if (firstSkill) { await openForEdit(); firstSkill = false; }
+        else { await addNew(); }
+        // 技能类型：无 placeholder、非 el-select 内的输入框（取最后一个 = 最新添加行）
+        const skillIn = Array.from(document.querySelectorAll('.el-input__inner'))
+          .filter(i => !i.closest('.el-select') && !i.readOnly && !i.placeholder).pop();
+        if (skillIn && !skillIn.value.trim()) { setNative(skillIn, skill); filled++; }
+        // 技能掌握程度 → 熟练(3)
+        const lvSel = Array.from(document.querySelectorAll('.el-select'))
+          .find(s => s.querySelector('.el-input__inner')?.placeholder.includes('掌握'));
+        if (lvSel?.__vue__?.options) {
+          const o = lvSel.__vue__.options.find(op => op.value === 3);
+          if (o) lvSel.__vue__.handleOptionSelect(o, true);
+        }
+        await saveCur();
+      }
+
+      resolve({ filled, highlighted: 0 });
+    });
+  }
+
+  // ════════════════════════════════════════════════════════
   // ── Element UI 通用适配器（el-input__inner）──────────────
   // 适用平台：xiaoyuan.zhaopin.com / shixiseng.com /
   //           campus.51job.com / 等一切使用 Element UI 的校招表单
@@ -674,7 +978,8 @@ async function fillForm() {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: pageFillerFn,
-      args: [profile]
+      args: [profile],
+      world: 'MAIN'   // 必须在主世界才能访问页面的 __vue__ 实例
     });
 
     const result = results?.[0]?.result;
