@@ -126,36 +126,54 @@ function pageFillerFn(profile) {
         { ph: '请选择您的政治面貌', val: mapPolitical(gv('extended.political')) },
       ].filter(d => d.val);
 
-      let idx = 0;
-      function next() {
-        if (idx >= dropdowns.length) {
-          // 高亮剩余未填字段
-          let hl = 0;
-          document.querySelectorAll('input.el-input__inner').forEach(el => {
-            if (!el.value.trim() && !el.readOnly) {
-              el.style.outline = '2px solid #fbbf24';
-              el.style.backgroundColor = '#fffbeb';
-              hl++;
-            }
-          });
-          resolve({ filled, highlighted: hl });
-          return;
-        }
-        const { ph, val } = dropdowns[idx++];
+      // ② 下拉字段
+      function setElSelect(ph, val) {
+        if (!val) return false;
         const input = findInput(ph);
-        if (!input) { next(); return; }
+        if (!input) return false;
+        const wrapper = input.closest('.el-select');
+        if (!wrapper) return false;
 
-        // 点击打开下拉
-        (input.closest('.el-select') || input.parentElement).click();
+        // 优先：直接调用 Vue 组件 API（不需要打开下拉）
+        const vm = wrapper.__vue__;
+        if (vm && vm.options) {
+          const option = Array.from(vm.options).find(o => {
+            const label = String(o.currentLabel || o.label || '');
+            return label === val || label.includes(val) || val.includes(label);
+          });
+          if (option && vm.handleOptionSelect) {
+            vm.handleOptionSelect(option, true);
+            return true;
+          }
+        }
+
+        // 备用：模拟 mousedown 打开（比 click 更可靠）
+        wrapper.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+        wrapper.dispatchEvent(new MouseEvent('mouseup',   { bubbles: true, cancelable: true }));
+        wrapper.dispatchEvent(new MouseEvent('click',     { bubbles: true, cancelable: true }));
         setTimeout(() => {
           const match = Array.from(document.querySelectorAll('.el-select-dropdown__item'))
             .find(o => { const t = o.textContent.trim(); return t === val || t.includes(val) || val.includes(t); });
-          if (match) { match.click(); filled++; }
-          document.body.click(); // 关闭下拉
-          setTimeout(next, 150);
-        }, 350);
+          if (match) { match.click(); }
+          document.body.click();
+        }, 400);
+        return true;
       }
-      next();
+
+      dropdowns.forEach(({ ph, val }) => {
+        if (setElSelect(ph, val)) filled++;
+      });
+
+      // 高亮剩余未填字段
+      let hl = 0;
+      document.querySelectorAll('input.el-input__inner').forEach(el => {
+        if (!el.value.trim() && !el.readOnly) {
+          el.style.outline = '2px solid #fbbf24';
+          el.style.backgroundColor = '#fffbeb';
+          hl++;
+        }
+      });
+      resolve({ filled, highlighted: hl });
     });
   }
 
