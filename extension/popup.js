@@ -78,6 +78,141 @@ function pageFillerFn(profile) {
   }
 
   // ════════════════════════════════════════════════════════
+  // ── Ant Design 通用适配器（antd / React）─────────────────
+  // 适用平台：c.liepin.com（猎聘）及一切使用 Ant Design 的表单
+  // 通过 .ant-form-item-label 关键词匹配字段
+  // ════════════════════════════════════════════════════════
+  if (document.querySelector('.ant-form-item')) {
+    return new Promise(async resolve => {
+      let filled = 0;
+
+      // ── React 原生 setter（触发受控组件更新）──────────
+      function setReactInput(el, value) {
+        if (!value || !el || el.readOnly) return false;
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (setter) setter.call(el, value); else el.value = value;
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+
+      // ── 通过 label 关键词找 ant-form-item ─────────────
+      function findItem(keywords) {
+        return Array.from(document.querySelectorAll('.ant-form-item')).find(item => {
+          const lbl = (item.querySelector('.ant-form-item-label label')?.textContent || '').toLowerCase();
+          return keywords.some(k => lbl.includes(k.toLowerCase()));
+        });
+      }
+
+      // ── 填写 ant-input 文本框 ─────────────────────────
+      function fillInput(keywords, value) {
+        if (!value) return false;
+        const item = findItem(keywords);
+        if (!item) return false;
+        const el = item.querySelector('input.ant-input:not(.ant-select-selection-search-input), textarea.ant-input');
+        if (!el || el.readOnly || el.value.trim()) return false;
+        return setReactInput(el, value);
+      }
+
+      // ── 填写 ant-radio-button（性别等）──────────────
+      function fillRadio(keywords, value) {
+        if (!value) return false;
+        const item = findItem(keywords);
+        if (!item) return false;
+        const wrapper = Array.from(item.querySelectorAll('.ant-radio-button-wrapper, .ant-radio-wrapper'))
+          .find(el => el.textContent.trim() === value || el.textContent.trim().includes(value));
+        if (!wrapper) return false;
+        if (wrapper.classList.contains('ant-radio-button-wrapper-checked') ||
+            wrapper.classList.contains('ant-radio-wrapper-checked')) return false;
+        wrapper.click();
+        return true;
+      }
+
+      // ── 填写 ant-select 下拉（click→等待→click选项）─
+      function fillSelect(keywords, value) {
+        return new Promise(res => {
+          if (!value) return res(false);
+          const item = findItem(keywords);
+          if (!item) return res(false);
+          // 如果已经有值，跳过
+          const current = item.querySelector('.ant-select-selection-item')?.textContent?.trim();
+          if (current && current !== '请选择') return res(false);
+          const selector = item.querySelector('.ant-select-selector');
+          if (!selector) return res(false);
+          selector.click();
+          setTimeout(() => {
+            const match = Array.from(document.querySelectorAll('.ant-select-item-option:not(.ant-select-item-option-disabled)'))
+              .find(o => { const t = o.textContent.trim(); return t === value || t.includes(value) || value.includes(t); });
+            if (match) { match.click(); return res(true); }
+            document.body.click();
+            res(false);
+          }, 400);
+        });
+      }
+
+      // ── 政治面貌映射（猎聘选项为完整名称）──────────
+      function mapPolitical(v) {
+        if (!v) return '';
+        if (v.includes('共青团') || v === '团员') return '共青团员';
+        if (v.includes('中共') || v.includes('党员')) return '中共党员';
+        if (v.includes('民主党派')) return '民主党派人士';
+        if (v.includes('无党派')) return '无党派人士';
+        if (v.includes('群众')) return '群众';
+        return v;
+      }
+
+      // ── 字段映射表 ────────────────────────────────────
+      const TEXT_FIELDS = [
+        { kw: ['真实姓名', '姓名'],         path: 'basic.name' },
+        { kw: ['邮箱', '邮件', 'email'],    path: 'basic.email' },
+        { kw: ['linkedin'],                  path: 'basic.linkedin' },
+      ];
+
+      const RADIO_FIELDS = [
+        { kw: ['性别'],  path: 'extended.gender' },
+      ];
+
+      const SELECT_FIELDS = [
+        { kw: ['政治面貌', '政治'],    path: 'extended.political', mapFn: mapPolitical },
+        { kw: ['最高学历', '学历'],    path: 'education.0.degree' },
+        { kw: ['目前状态', '求职状态'], path: 'extended.job_type' },
+        { kw: ['婚姻'],               path: 'extended.marriage' },
+      ];
+
+      // ── 执行填写 ─────────────────────────────────────
+      TEXT_FIELDS.forEach(({ kw, path }) => {
+        if (fillInput(kw, gv(path))) filled++;
+      });
+
+      RADIO_FIELDS.forEach(({ kw, path }) => {
+        if (fillRadio(kw, gv(path))) filled++;
+      });
+
+      for (const { kw, path, mapFn } of SELECT_FIELDS) {
+        const raw = gv(path);
+        const val = mapFn ? mapFn(raw) : raw;
+        if (await fillSelect(kw, val)) filled++;
+      }
+
+      // ── 高亮未填字段 ──────────────────────────────────
+      let highlighted = 0;
+      document.querySelectorAll('.ant-form-item').forEach(item => {
+        const lbl = item.querySelector('.ant-form-item-label label')?.textContent?.trim();
+        if (!lbl) return;
+        const input = item.querySelector('input.ant-input:not(.ant-select-selection-search-input)');
+        const hasEmptySelect = item.querySelector('.ant-select-selection-placeholder');
+        if ((input && !input.value.trim() && !input.readOnly) || hasEmptySelect) {
+          item.style.outline = '2px solid #fbbf24';
+          item.style.borderRadius = '4px';
+          highlighted++;
+        }
+      });
+
+      resolve({ filled, highlighted });
+    });
+  }
+
+  // ════════════════════════════════════════════════════════
   // ── 58同城简历创建页（jianli.58.com/resumebase）───────────
   // 自定义 jQuery 下拉，选项为 <a class="select-option">
   // ════════════════════════════════════════════════════════
