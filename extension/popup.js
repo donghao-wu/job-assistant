@@ -52,6 +52,95 @@ async function loadProfiles() {
 
 // ─── 填表逻辑（直接注入到页面执行）──────────────────────
 function pageFillerFn(profile) {
+  const host = window.location.hostname;
+
+  // ── 智联招聘专项适配 ──────────────────────────────────
+  if (host.includes('zhaopin.com')) {
+    let filled = 0, highlighted = 0;
+
+    function getVal(p, path) {
+      let v = p;
+      for (const k of path.split('.')) {
+        if (!v) return '';
+        v = Array.isArray(v) ? v[parseInt(k)] : v[k];
+      }
+      return (v === null || v === undefined || v === '无') ? '' : String(v);
+    }
+
+    function setIvuInput(el, value) {
+      if (!value || !el) return false;
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      if (setter) setter.call(el, value);
+      else el.value = value;
+      el.dispatchEvent(new Event('input',  { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    // 姓名
+    const nameEl = document.querySelector('input.ivu-input[placeholder*="真实姓名"]');
+    if (nameEl && !nameEl.value.trim()) {
+      if (setIvuInput(nameEl, getVal(profile, 'basic.name'))) filled++;
+    }
+
+    // 出生年月
+    const birthEl = document.querySelector('input.ivu-input[placeholder*="生日"]');
+    if (birthEl && !birthEl.value.trim()) {
+      if (setIvuInput(birthEl, getVal(profile, 'extended.birthdate'))) filled++;
+    }
+
+    // 邮箱
+    const emailEl = document.querySelector('input[placeholder*="邮箱"]');
+    if (emailEl && !emailEl.value.trim()) {
+      if (setIvuInput(emailEl, getVal(profile, 'basic.email'))) filled++;
+    }
+
+    // 性别 - radio 按钮
+    const genderVal = getVal(profile, 'extended.gender');
+    if (genderVal) {
+      document.querySelectorAll('.a-radio, [class*="radio-item"], [class*="radio-wrap"]').forEach(wrap => {
+        const label = wrap.querySelector('span, label');
+        if (label && label.textContent.trim() === genderVal) {
+          const radio = wrap.querySelector('input[type="radio"]');
+          if (radio) { radio.click(); filled++; }
+        }
+      });
+    }
+
+    // 政治面貌 - iView Select（点击打开 + 选中选项）
+    const politicalVal = getVal(profile, 'extended.political');
+    if (politicalVal) {
+      const selects = document.querySelectorAll('.ivu-select');
+      selects.forEach(sel => {
+        const placeholder = sel.querySelector('.ivu-select-placeholder');
+        if (placeholder && placeholder.textContent.includes('政治面貌')) {
+          sel.click(); // 打开下拉
+          setTimeout(() => {
+            const opts = document.querySelectorAll('.ivu-select-dropdown li, .ivu-select-item');
+            opts.forEach(opt => {
+              if (opt.textContent.trim() === politicalVal) {
+                opt.click(); filled++;
+              }
+            });
+          }, 300);
+        }
+      });
+    }
+
+    // 高亮还未填的字段
+    document.querySelectorAll('input.ivu-input, .ivu-select').forEach(el => {
+      const val = el.tagName === 'INPUT' ? el.value : el.querySelector('.ivu-select-selected-value')?.textContent;
+      if (!val || !val.trim()) {
+        el.style.outline = '2px solid #fbbf24';
+        el.style.backgroundColor = '#fffbeb';
+        highlighted++;
+      }
+    });
+
+    return { filled, highlighted };
+  }
+  // ── 通用填表（下方原有逻辑）─────────────────────────────
+
   const KEYWORD_MAP = [
     { kw: ['姓名', 'name', 'full_name', 'realname', 'fullname', '真实姓名'], path: 'basic.name' },
     { kw: ['邮箱', 'email', 'mail', '电子邮件', 'e-mail'],                   path: 'basic.email' },
