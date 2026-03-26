@@ -1073,6 +1073,7 @@ async function fillForm() {
       const msg = `✅ 已填入 ${result.filled} 个字段` +
         (result.highlighted > 0 ? `\n⚠️ ${result.highlighted} 个字段已高亮，请手动填写` : '');
       showStatus(msg, 'success');
+      await showTrackCard();
     } else {
       showStatus('完成，但未收到结果', 'info');
     }
@@ -1092,3 +1093,83 @@ function showStatus(msg, type) {
   el.style.display = 'block';
   el.style.whiteSpace = 'pre-line';
 }
+
+// ─── 投递自动追踪 ─────────────────────────────────────────
+
+// 注入到页面，抓取公司名 + 职位名
+function scrapeJobInfoFn() {
+  const host = location.hostname;
+  let company = '', position = '';
+
+  // 各平台特定选择器
+  if (host.includes('zhaopin.com')) {
+    company  = document.querySelector('.company-name, .enterprise-name, .company-info .name')?.textContent?.trim() || '';
+    position = document.querySelector('.job-name, .position-name, .recruit-position-head h1')?.textContent?.trim() || '';
+  } else if (host.includes('liepin.com')) {
+    company  = document.querySelector('.company-name, .dq-company-name')?.textContent?.trim() || '';
+    position = document.querySelector('.job-name, .title-info h1')?.textContent?.trim() || '';
+  } else if (host.includes('51job.com')) {
+    company  = document.querySelector('.cname, .cn')?.textContent?.trim() || '';
+    position = document.querySelector('.jobname, h1.title')?.textContent?.trim() || '';
+  } else if (host.includes('boss') || host.includes('zhipin.com')) {
+    company  = document.querySelector('.company-name, .name')?.textContent?.trim() || '';
+    position = document.querySelector('.job-name, h1')?.textContent?.trim() || '';
+  } else if (host.includes('lagou.com')) {
+    company  = document.querySelector('.company-name')?.textContent?.trim() || '';
+    position = document.querySelector('.position-name, h1')?.textContent?.trim() || '';
+  }
+
+  // 通用兜底：解析页面标题（常见格式：职位-公司-平台）
+  if (!company || !position) {
+    const parts = document.title.split(/\s*[-|·_—]\s*/);
+    if (parts.length >= 2) {
+      if (!position && parts[0]) position = parts[0].trim();
+      if (!company  && parts[1]) company  = parts[1].trim();
+    }
+  }
+
+  return { company, position, jobUrl: location.href };
+}
+
+async function showTrackCard() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: scrapeJobInfoFn,
+      world: 'MAIN',
+    });
+    const info = results?.[0]?.result || {};
+    document.getElementById('tcCompany').value  = info.company  || '';
+    document.getElementById('tcPosition').value = info.position || '';
+    document.getElementById('trackCard')._jobUrl = info.jobUrl || '';
+  } catch (_) {}
+  document.getElementById('trackCard').style.display = 'block';
+}
+
+function hideTrackCard() {
+  document.getElementById('trackCard').style.display = 'none';
+}
+
+document.getElementById('tcConfirm').addEventListener('click', async () => {
+  const company  = document.getElementById('tcCompany').value.trim();
+  const position = document.getElementById('tcPosition').value.trim();
+  if (!company || !position) {
+    document.getElementById('tcCompany').style.borderColor = company  ? '' : '#f87171';
+    document.getElementById('tcPosition').style.borderColor = position ? '' : '#f87171';
+    return;
+  }
+  const jobUrl = document.getElementById('trackCard')._jobUrl || '';
+  const today  = new Date().toISOString().slice(0, 10);
+  try {
+    await fetch(`${getBase()}/applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company, position, job_url: jobUrl, applied_date: today, status: '已投递' }),
+    });
+    hideTrackCard();
+    showStatus('✅ 已记录投递', 'success');
+  } catch (e) {
+    showStatus('记录失败：' + e.message, 'error');
+  }
+});

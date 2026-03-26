@@ -75,6 +75,41 @@
       outline: none;
     }
     .port-row input:focus { border-color: #3b82f6; }
+    .track-card {
+      margin-top: 10px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 11px 12px;
+      display: none;
+    }
+    .track-card .tc-label { font-size: 11px; color: #166534; font-weight: 600; margin-bottom: 8px; }
+    .track-card input {
+      width: 100%;
+      border: 1px solid #d1fae5;
+      border-radius: 7px;
+      padding: 6px 9px;
+      font-size: 12px;
+      color: #374151;
+      background: white;
+      outline: none;
+      margin-bottom: 6px;
+    }
+    .track-card input:focus { border-color: #34d399; }
+    .track-row { display: flex; gap: 6px; }
+    .tc-btn {
+      flex: 1;
+      padding: 7px;
+      border: none;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tc-btn.confirm { background: #22c55e; color: white; }
+    .tc-btn.confirm:hover { background: #16a34a; }
+    .tc-btn.skip { background: #e5e7eb; color: #6b7280; }
+    .tc-btn.skip:hover { background: #d1d5db; }
   </style>
 </head>
 <body>
@@ -91,6 +126,17 @@
     <button class="btn" id="fillBtn">一键填入</button>
 
     <div class="status" id="status"></div>
+
+    <!-- 投递记录确认卡 -->
+    <div class="track-card" id="trackCard">
+      <div class="tc-label">📌 记录此次投递？</div>
+      <input type="text" id="tcCompany" placeholder="公司名称"/>
+      <input type="text" id="tcPosition" placeholder="投递职位"/>
+      <div class="track-row">
+        <button class="tc-btn confirm" id="tcConfirm">记录</button>
+        <button class="tc-btn skip" onclick="hideTrackCard()">跳过</button>
+      </div>
+    </div>
 
     <hr class="divider"/>
 
