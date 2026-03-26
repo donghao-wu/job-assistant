@@ -52,6 +52,18 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # 面试准备会话表
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS interview_sessions (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id INTEGER NOT NULL,
+            jd_text    TEXT NOT NULL,
+            jd_snippet TEXT NOT NULL,
+            questions  TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+        )
+    """)
     # 迁移旧数据
     try:
         old = conn.execute("SELECT data FROM profile LIMIT 1").fetchone()
@@ -224,6 +236,54 @@ def create_event(app_id: int, data: dict) -> int:
 def delete_event(event_id: int):
     conn = get_conn()
     conn.execute("DELETE FROM app_events WHERE id=?", (event_id,))
+    conn.commit()
+    conn.close()
+
+
+# ─── 面试准备 ─────────────────────────────────────────────
+
+def list_interview_sessions(profile_id: int | None = None) -> list:
+    conn = get_conn()
+    if profile_id:
+        rows = conn.execute(
+            "SELECT id, profile_id, jd_snippet, created_at FROM interview_sessions WHERE profile_id=? ORDER BY created_at DESC LIMIT 30",
+            (profile_id,)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT id, profile_id, jd_snippet, created_at FROM interview_sessions ORDER BY created_at DESC LIMIT 30"
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def create_interview_session(profile_id: int, jd_text: str, questions: list) -> int:
+    conn = get_conn()
+    jd_snippet = jd_text[:80].replace('\n', ' ')
+    cur = conn.execute(
+        "INSERT INTO interview_sessions (profile_id, jd_text, jd_snippet, questions) VALUES (?,?,?,?)",
+        (profile_id, jd_text, jd_snippet, json.dumps(questions, ensure_ascii=False))
+    )
+    sid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return sid
+
+
+def get_interview_session(session_id: int) -> dict | None:
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM interview_sessions WHERE id=?", (session_id,)).fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    d['questions'] = json.loads(d['questions'])
+    return d
+
+
+def delete_interview_session(session_id: int):
+    conn = get_conn()
+    conn.execute("DELETE FROM interview_sessions WHERE id=?", (session_id,))
     conn.commit()
     conn.close()
 

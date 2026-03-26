@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>面试准备</title>
+  <script>(function(){const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <style>
+    html.dark body            { background:#0f172a !important; color:#f1f5f9; }
+    html.dark .bg-gray-50     { background:#0f172a !important; }
+    html.dark .bg-white       { background:#1e293b !important; }
+    html.dark .bg-gray-100    { background:#334155 !important; }
+    html.dark .text-gray-800  { color:#f1f5f9 !important; }
+    html.dark .text-gray-700  { color:#e2e8f0 !important; }
+    html.dark .text-gray-600  { color:#cbd5e1 !important; }
+    html.dark .text-gray-500  { color:#94a3b8 !important; }
+    html.dark .text-gray-400  { color:#64748b !important; }
+    html.dark .border-gray-200{ border-color:#334155 !important; }
+    html.dark .border-gray-100{ border-color:#1e293b !important; }
+    html.dark .divide-gray-100 > * { border-color:#334155 !important; }
+    html.dark select, html.dark input, html.dark textarea {
+      background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important;
+    }
+    html.dark textarea::placeholder, html.dark input::placeholder { color:#475569 !important; }
+    html.dark .hover\:bg-gray-50:hover { background:#334155 !important; }
+    html.dark .shadow-sm { box-shadow:0 1px 3px rgba(0,0,0,.4) !important; }
+
+    /* category tags — dark overrides */
+    html.dark .tag-self   { background:#3b0764 !important; color:#e9d5ff !important; }
+    html.dark .tag-behav  { background:#1e3a5f !important; color:#93c5fd !important; }
+    html.dark .tag-tech   { background:#064e3b !important; color:#6ee7b7 !important; }
+    html.dark .tag-scene  { background:#451a03 !important; color:#fcd34d !important; }
+    html.dark .tag-co     { background:#4c0519 !important; color:#fda4af !important; }
+
+    /* answer panel */
+    .answer-panel { display:none; border-top:1px solid #e5e7eb; margin-top:.75rem; padding-top:.75rem; }
+    .answer-panel.open { display:block; }
+    html.dark .answer-panel { border-color:#334155 !important; }
+
+    /* practice reveal */
+    .practice-cover { background:#f1f5f9; border-radius:.75rem; padding:1rem; text-align:center; color:#6b7280; cursor:pointer; }
+    html.dark .practice-cover { background:#334155 !important; color:#94a3b8 !important; }
+    .practice-cover:hover { background:#e2e8f0; }
+    html.dark .practice-cover:hover { background:#475569 !important; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen transition-colors duration-200">
+<div class="max-w-6xl mx-auto py-10 px-4">
+
+  <!-- Nav -->
+  <div class="flex justify-center gap-2 mb-8 items-center flex-wrap">
+    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
+    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
+    <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
+    <a href="/interview" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">面试准备</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
+  </div>
+
+  <div class="flex gap-6 items-start">
+
+    <!-- ── LEFT SIDEBAR ────────────────────────────── -->
+    <div class="w-72 flex-shrink-0 space-y-4 sticky top-6">
+
+      <!-- Profile + JD + Generate -->
+      <div class="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+        <h2 class="font-bold text-gray-800 text-base">🎯 生成面试题</h2>
+
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">选择档案</label>
+          <select id="profileSelector" onchange="onProfileChange()"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700">
+            <option value="">— 加载中 —</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">目标岗位 JD</label>
+          <textarea id="jdInput" rows="8" placeholder="粘贴目标岗位的职位描述..."
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 resize-none"></textarea>
+          <p id="jdWarning" class="text-xs text-amber-500 mt-1 hidden">JD 较长，已截取前 2000 字</p>
+        </div>
+
+        <button onclick="generate()" id="generateBtn"
+          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">
+          ✨ 生成面试题
+        </button>
+        <div id="genLoading" class="hidden text-center py-2">
+          <div class="inline-block w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+          <span class="text-sm text-gray-500">AI 正在出题...</span>
+        </div>
+        <p id="genError" class="hidden text-xs text-red-500 text-center"></p>
+      </div>
+
+      <!-- Session history -->
+      <div class="bg-white rounded-2xl shadow-sm p-5">
+        <h3 class="font-semibold text-gray-700 text-sm mb-3">📋 历史记录</h3>
+        <div id="sessionsList" class="space-y-1 text-sm text-gray-500">
+          <p class="text-xs">暂无历史</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT MAIN ────────────────────────────── -->
+    <div class="flex-1 min-w-0">
+
+      <!-- Empty state -->
+      <div id="emptyState" class="text-center py-24 text-gray-400">
+        <p class="text-5xl mb-4">🎤</p>
+        <p class="text-base font-medium">选择档案并粘贴 JD</p>
+        <p class="text-sm mt-1">AI 将根据你的真实经历生成个性化面试题</p>
+      </div>
+
+      <!-- Controls bar -->
+      <div id="controlsBar" class="hidden flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span id="questionCount" class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium"></span>
+          <div id="categoryFilters" class="flex flex-wrap gap-1"></div>
+        </div>
+        <button onclick="togglePractice()" id="practiceBtn"
+          class="text-sm px-4 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+          🧠 练习模式
+        </button>
+      </div>
+
+      <!-- Question cards -->
+      <div id="questionsContainer" class="space-y-3"></div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────
+const CATEGORY_CFG = {
+  '自我介绍': { cls: 'tag-self',  bg: 'bg-purple-100', text: 'text-purple-700' },
+  '行为面试': { cls: 'tag-behav', bg: 'bg-blue-100',   text: 'text-blue-700'   },
+  '专业技术': { cls: 'tag-tech',  bg: 'bg-green-100',  text: 'text-green-700'  },
+  '情景题':   { cls: 'tag-scene', bg: 'bg-amber-100',  text: 'text-amber-700'  },
+  '公司相关': { cls: 'tag-co',    bg: 'bg-rose-100',   text: 'text-rose-700'   },
+};
+
+// ─── State ────────────────────────────────────────────────
+let currentProfileId = null;
+let currentQuestions = [];
+let practiceMode = false;
+let activeCategory = '全部';
+let expandedIndex = null;
+
+// ─── Init ─────────────────────────────────────────────────
+async function init() {
+  if (document.documentElement.classList.contains('dark'))
+    document.getElementById('themeBtn').textContent = '☀️';
+
+  await fetchProfiles();
+  const saved = localStorage.getItem('lastProfileId');
+  if (saved) {
+    document.getElementById('profileSelector').value = saved;
+    currentProfileId = parseInt(saved) || null;
+  }
+  await loadSessions();
+}
+
+// ─── Profile selector ─────────────────────────────────────
+async function fetchProfiles() {
+  try {
+    const res = await fetch('/profiles');
+    const profiles = await res.json();
+    const sel = document.getElementById('profileSelector');
+    sel.innerHTML = profiles.length === 0
+      ? '<option value="">— 暂无档案，请先创建 —</option>'
+      : '<option value="">— 选择档案 —</option>' +
+        profiles.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  } catch(e) {
+    document.getElementById('profileSelector').innerHTML = '<option value="">⚠️ 连接失败</option>';
+  }
+}
+
+function onProfileChange() {
+  const id = parseInt(document.getElementById('profileSelector').value) || null;
+  currentProfileId = id;
+  if (id) localStorage.setItem('lastProfileId', id);
+  loadSessions();
+}
+
+// ─── Generate ─────────────────────────────────────────────
+async function generate() {
+  const jd = document.getElementById('jdInput').value.trim();
+  if (!currentProfileId) { showError('请先选择档案'); return; }
+  if (!jd) { showError('请粘贴目标岗位 JD'); return; }
+
+  document.getElementById('jdWarning').classList.toggle('hidden', jd.length <= 2000);
+
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('genLoading').classList.remove('hidden');
+  document.getElementById('genError').classList.add('hidden');
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('questionsContainer').innerHTML = '';
+  document.getElementById('controlsBar').classList.add('hidden');
+
+  try {
+    const res = await fetch('/interview/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: currentProfileId, jd })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '生成失败');
+    currentQuestions = data.questions || [];
+    expandedIndex = null;
+    practiceMode = false;
+    document.getElementById('practiceBtn').textContent = '🧠 练习模式';
+    document.getElementById('practiceBtn').classList.remove('bg-blue-500','text-white');
+    renderCards();
+    await loadSessions();
+  } catch(e) {
+    showError(e.message);
+    document.getElementById('emptyState').classList.remove('hidden');
+  } finally {
+    document.getElementById('generateBtn').disabled = false;
+    document.getElementById('genLoading').classList.add('hidden');
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('genError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+// ─── Render cards ─────────────────────────────────────────
+function renderCards() {
+  const filtered = activeCategory === '全部'
+    ? currentQuestions
+    : currentQuestions.filter(q => q.category === activeCategory);
+
+  // Controls
+  document.getElementById('controlsBar').classList.remove('hidden');
+  document.getElementById('questionCount').textContent = `${filtered.length} 道题`;
+
+  // Category filter pills
+  const cats = ['全部', ...Object.keys(CATEGORY_CFG)];
+  const filtersEl = document.getElementById('categoryFilters');
+  filtersEl.innerHTML = cats.map(c => {
+    const active = c === activeCategory;
+    const cfg = CATEGORY_CFG[c] || {};
+    return `<button onclick="setCategory('${c}')"
+      class="text-xs px-3 py-1 rounded-full border transition-colors ${
+        active
+          ? (cfg.bg || 'bg-gray-800') + ' ' + (cfg.text || 'text-white') + ' border-transparent font-semibold'
+          : 'border-gray-200 text-gray-500 hover:bg-gray-100'
+      }">${c}</button>`;
+  }).join('');
+
+  // Cards
+  const container = document.getElementById('questionsContainer');
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="text-center text-gray-400 py-12">该分类下暂无题目</p>';
+    return;
+  }
+  container.innerHTML = filtered.map((q, i) => buildCard(q, i)).join('');
+}
+
+function buildCard(q, i) {
+  const cfg = CATEGORY_CFG[q.category] || { cls:'tag-co', bg:'bg-gray-100', text:'text-gray-600' };
+  const tag = `<span class="text-xs font-medium px-2.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text} ${cfg.cls}">${q.category}</span>`;
+
+  const answerContent = `
+    <div class="space-y-3">
+      <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">建议回答思路</p>
+        <p class="text-sm text-gray-700 leading-relaxed">${escHtml(q.scaffold || '')}</p>
+      </div>
+      ${(q.talking_points||[]).length ? `
+      <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">关键要点</p>
+        <ul class="space-y-1">
+          ${(q.talking_points||[]).map(pt => `<li class="text-sm text-gray-700 flex gap-2"><span class="text-blue-400 mt-0.5">›</span><span>${escHtml(pt)}</span></li>`).join('')}
+        </ul>
+      </div>` : ''}
+      ${q.tip ? `<div class="bg-amber-50 rounded-lg px-3 py-2 text-xs text-amber-700">💡 ${escHtml(q.tip)}</div>` : ''}
+    </div>`;
+
+  const practiceCover = `<div class="practice-cover" onclick="revealCard(${i})">👆 点击揭示建议回答</div>`;
+
+  return `
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden" id="card-${i}">
+      <button onclick="toggleCard(${i})"
+        class="w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-gray-50 transition-colors">
+        <div class="flex-shrink-0 mt-0.5">${tag}</div>
+        <p class="flex-1 text-sm text-gray-800 font-medium leading-snug">${escHtml(q.question || '')}</p>
+        <span class="flex-shrink-0 text-gray-400 text-xs mt-0.5 transition-transform" id="chevron-${i}">▼</span>
+      </button>
+      <div class="answer-panel px-5 pb-4" id="panel-${i}">
+        ${practiceMode
+          ? `<div id="cover-${i}">${practiceCover}</div><div id="answer-${i}" class="hidden">${answerContent}</div>`
+          : answerContent
+        }
+      </div>
+    </div>`;
+}
+
+function toggleCard(i) {
+  const panel = document.getElementById(`panel-${i}`);
+  const chevron = document.getElementById(`chevron-${i}`);
+  const isOpen = panel.classList.contains('open');
+
+  // Close previously open card
+  if (expandedIndex !== null && expandedIndex !== i) {
+    const prev = document.getElementById(`panel-${expandedIndex}`);
+    const prevChev = document.getElementById(`chevron-${expandedIndex}`);
+    if (prev) prev.classList.remove('open');
+    if (prevChev) prevChev.style.transform = '';
+  }
+
+  if (isOpen) {
+    panel.classList.remove('open');
+    chevron.style.transform = '';
+    expandedIndex = null;
+  } else {
+    panel.classList.add('open');
+    chevron.style.transform = 'rotate(180deg)';
+    expandedIndex = i;
+  }
+}
+
+function revealCard(i) {
+  document.getElementById(`cover-${i}`)?.classList.add('hidden');
+  document.getElementById(`answer-${i}`)?.classList.remove('hidden');
+}
+
+// ─── Category filter ──────────────────────────────────────
+function setCategory(cat) {
+  activeCategory = cat;
+  expandedIndex = null;
+  renderCards();
+}
+
+// ─── Practice mode ────────────────────────────────────────
+function togglePractice() {
+  practiceMode = !practiceMode;
+  const btn = document.getElementById('practiceBtn');
+  if (practiceMode) {
+    btn.textContent = '📖 退出练习';
+    btn.classList.add('bg-blue-500','text-white','border-blue-500');
+  } else {
+    btn.textContent = '🧠 练习模式';
+    btn.classList.remove('bg-blue-500','text-white','border-blue-500');
+  }
+  expandedIndex = null;
+  renderCards();
+}
+
+// ─── Session history ──────────────────────────────────────
+async function loadSessions() {
+  const url = currentProfileId
+    ? `/interview/sessions?profile_id=${currentProfileId}`
+    : '/interview/sessions';
+  try {
+    const res = await fetch(url);
+    const sessions = await res.json();
+    const el = document.getElementById('sessionsList');
+    if (!sessions.length) {
+      el.innerHTML = '<p class="text-xs text-gray-400">暂无历史</p>';
+      return;
+    }
+    el.innerHTML = sessions.map(s => {
+      const date = s.created_at ? s.created_at.slice(0,10) : '';
+      return `
+        <div class="flex items-center gap-1 group rounded-lg px-2 py-1.5 hover:bg-gray-50 cursor-pointer transition-colors"
+             onclick="loadSession(${s.id})">
+          <span class="flex-1 text-xs text-gray-600 truncate" title="${escHtml(s.jd_snippet)}">${escHtml(s.jd_snippet)}</span>
+          <span class="text-xs text-gray-400 flex-shrink-0">${date}</span>
+          <button onclick="deleteSession(${s.id}, event)"
+            class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs ml-1 flex-shrink-0 transition-opacity">✕</button>
+        </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function loadSession(id) {
+  try {
+    const res = await fetch(`/interview/sessions/${id}`);
+    const data = await res.json();
+    currentQuestions = data.questions || [];
+    // Show partial JD in textarea
+    const jdPreview = (data.jd_text || '').slice(0, 300) + ((data.jd_text||'').length > 300 ? '...' : '');
+    document.getElementById('jdInput').value = jdPreview;
+    expandedIndex = null;
+    practiceMode = false;
+    document.getElementById('practiceBtn').textContent = '🧠 练习模式';
+    document.getElementById('practiceBtn').classList.remove('bg-blue-500','text-white','border-blue-500');
+    document.getElementById('emptyState').classList.add('hidden');
+    renderCards();
+  } catch(e) {}
+}
+
+async function deleteSession(id, event) {
+  event.stopPropagation();
+  await fetch(`/interview/sessions/${id}`, { method: 'DELETE' });
+  await loadSessions();
+}
+
+// ─── Theme ────────────────────────────────────────────────
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+
+// ─── Utils ────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>

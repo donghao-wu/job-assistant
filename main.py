@@ -20,6 +20,8 @@ from database import (
     list_applications, create_application, update_application,
     delete_application, get_application_stats,
     list_events, create_event, delete_event,
+    list_interview_sessions, create_interview_session,
+    get_interview_session, delete_interview_session,
 )
 
 load_dotenv()
@@ -511,6 +513,139 @@ async def api_delete_event(app_id: int, event_id: int):
     return {"status": "ok"}
 
 
+# ─── 面试准备 ────────────────────────────────────────────
+
+def build_profile_summary(profile: dict) -> str:
+    lines = []
+    b = profile.get("basic", {})
+    if b.get("name"):
+        lines.append(f"姓名：{b['name']}  所在地：{b.get('location','')}")
+
+    edu = profile.get("education", [])
+    if edu:
+        lines.append("\n【教育经历】")
+        for e in edu:
+            gpa = f"  GPA {e['gpa']}" if e.get('gpa') and e['gpa'] != '无' else ''
+            lines.append(f"- {e.get('school','')} {e.get('degree','')} {e.get('major','')}{gpa}  ({e.get('start','')}–{e.get('end','')})")
+
+    exp = [e for e in profile.get("experience", []) if e.get("company") and e["company"] != "无"]
+    if exp:
+        lines.append("\n【工作/实习经历】")
+        for e in exp:
+            lines.append(f"- {e.get('company','')}  {e.get('title','')}  ({e.get('type','')}, {e.get('start','')}–{e.get('end','')})")
+            for b_ in (e.get("bullets") or []):
+                if b_ and b_ != "无":
+                    lines.append(f"  · {b_}")
+
+    proj = [p for p in profile.get("projects", []) if p.get("name") and p["name"] != "无"]
+    if proj:
+        lines.append("\n【项目经历】")
+        for p in proj:
+            tech = f"  [{p['tech']}]" if p.get('tech') and p['tech'] != '无' else ''
+            lines.append(f"- {p.get('name','')}{tech}  ({p.get('start','')}–{p.get('end','')})")
+            for b_ in (p.get("bullets") or []):
+                if b_ and b_ != "无":
+                    lines.append(f"  · {b_}")
+
+    sk = profile.get("skills", {})
+    skill_parts = []
+    if sk.get("technical") and sk["technical"] != "无":
+        skill_parts.append(f"技术：{sk['technical']}")
+    if sk.get("languages") and sk["languages"] != "无":
+        skill_parts.append(f"语言：{sk['languages']}")
+    if skill_parts:
+        lines.append("\n【技能】" + "  ".join(skill_parts))
+
+    awards = [a for a in profile.get("awards", []) if a.get("name") and a["name"] != "无"]
+    if awards:
+        lines.append("\n【奖项】" + "；".join(f"{a['name']}" for a in awards))
+
+    return "\n".join(lines)
+
+
+@app.get("/interview/sessions")
+async def api_list_interview_sessions(profile_id: int | None = None):
+    return list_interview_sessions(profile_id)
+
+
+@app.post("/interview/sessions")
+async def api_create_interview_session(payload: dict):
+    profile_id = payload.get("profile_id")
+    jd = (payload.get("jd") or "").strip()
+    if not profile_id or not jd:
+        return JSONResponse(status_code=400, content={"error": "profile_id 和 jd 均为必填"})
+
+    profile = get_profile(profile_id)
+    if not profile:
+        return JSONResponse(status_code=404, content={"error": "档案不存在"})
+
+    profile_summary = build_profile_summary(profile)
+    jd_trimmed = jd[:2000]
+
+    prompt = f"""你是一位专业的面试培训顾问。根据候选人的真实背景和目标岗位JD，生成10-12道个性化面试题。
+
+严格按照以下JSON数组格式输出，不要有任何其他文字：
+
+[
+  {{
+    "category": "行为面试",
+    "question": "问题原文",
+    "scaffold": "建议回答思路，必须引用候选人简历中的具体经历、公司名、项目名或数据",
+    "talking_points": ["要点1", "要点2", "要点3"],
+    "tip": "面试技巧提示"
+  }}
+]
+
+类别只能是以下五种之一：自我介绍 / 行为面试 / 专业技术 / 情景题 / 公司相关
+
+要求：
+- scaffold 必须引用候选人的真实经历（公司名、项目名、具体技术、具体数字）
+- 专业技术题要结合JD里提到的具体技术栈出题
+- 公司相关题根据JD推断公司业务方向
+- 共生成10-12道，覆盖全部5个类别
+
+【候选人背景】
+{profile_summary}
+
+【目标岗位JD】
+{jd_trimmed}"""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,
+    )
+
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+
+    try:
+        questions = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return JSONResponse(status_code=500, content={"error": f"AI返回格式错误: {e}", "raw": raw[:400]})
+
+    session_id = create_interview_session(profile_id, jd, questions)
+    return {"id": session_id, "questions": questions}
+
+
+@app.get("/interview/sessions/{session_id}")
+async def api_get_interview_session(session_id: int):
+    data = get_interview_session(session_id)
+    if not data:
+        return JSONResponse(status_code=404, content={"error": "会话不存在"})
+    return data
+
+
+@app.delete("/interview/sessions/{session_id}")
+async def api_delete_interview_session(session_id: int):
+    delete_interview_session(session_id)
+    return {"status": "ok"}
+
+
 # ─── 页面路由 ────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -528,6 +663,12 @@ async def profile_page():
 @app.get("/tracker", response_class=HTMLResponse)
 async def tracker_page():
     with open("tracker.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/interview", response_class=HTMLResponse)
+async def interview_page():
+    with open("interview.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
