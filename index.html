@@ -93,15 +93,41 @@
     <div id="resultBox" class="hidden mt-8 bg-white rounded-2xl shadow-sm p-8">
       <div id="loading" class="text-center py-8">
         <div class="inline-block w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        <p class="text-gray-500 mt-3 text-sm">AI 分析中，请稍候...</p>
+        <p class="text-gray-500 mt-3 text-sm" id="loadingText">AI 分析中，请稍候...</p>
       </div>
       <div id="resultContent" class="hidden prose prose-sm max-w-none text-gray-700"></div>
+
+      <!-- 生成简历按钮（分析完成后显示）-->
+      <div id="generateBox" class="hidden mt-6 pt-6 border-t border-gray-100">
+        <button onclick="generateResume()"
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+          <span>✨ 生成优化简历（Word）</span>
+        </button>
+        <p class="text-center text-xs text-gray-400 mt-2">AI 将根据 JD 重写每条经历描述，生成可直接投递的 .docx 文件</p>
+      </div>
+    </div>
+
+    <!-- 简历生成进度框 -->
+    <div id="optimizeBox" class="hidden mt-4 bg-white rounded-2xl shadow-sm p-8">
+      <div id="optimizeLoading" class="text-center py-8">
+        <div class="inline-block w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-gray-500 mt-3 text-sm">AI 正在改写简历内容...</p>
+      </div>
+      <div id="optimizeResult" class="hidden text-center py-4">
+        <div class="text-4xl mb-3">📄</div>
+        <p class="text-gray-700 font-medium mb-4">优化简历已生成！</p>
+        <button onclick="downloadDocx()"
+          class="bg-blue-500 hover:bg-blue-600 text-white font-medium px-8 py-3 rounded-xl transition-colors">
+          ⬇ 下载 Word 文件
+        </button>
+      </div>
     </div>
 
   </div>
 
   <script>
     let selectedFile = null;
+    let optimizedData = null;
 
     function handleFile(input) {
       selectedFile = input.files[0];
@@ -112,24 +138,21 @@
     }
 
     async function submit() {
-      if (!selectedFile) {
-        alert('请先上传简历文件');
-        return;
-      }
+      if (!selectedFile) { alert('请先上传简历文件'); return; }
       const jd = document.getElementById('jdInput').value.trim();
-      if (!jd) {
-        alert('请粘贴目标岗位JD');
-        return;
-      }
+      if (!jd) { alert('请粘贴目标岗位JD'); return; }
 
       const resultBox = document.getElementById('resultBox');
       const loading = document.getElementById('loading');
       const resultContent = document.getElementById('resultContent');
+      const generateBox = document.getElementById('generateBox');
 
       resultBox.classList.remove('hidden');
       loading.classList.remove('hidden');
       resultContent.classList.add('hidden');
-
+      generateBox.classList.add('hidden');
+      document.getElementById('optimizeBox').classList.add('hidden');
+      optimizedData = null;
       resultBox.scrollIntoView({ behavior: 'smooth' });
 
       const formData = new FormData();
@@ -143,7 +166,6 @@
         loading.classList.add('hidden');
         resultContent.classList.remove('hidden');
         resultContent.innerHTML = marked.parse(data.result);
-        // 给不同类型条目上色
         resultContent.querySelectorAll('li').forEach(li => {
           const text = li.textContent;
           if (text.startsWith('✅')) {
@@ -160,11 +182,66 @@
             li.style.paddingLeft = '0.75rem';
           }
         });
+        generateBox.classList.remove('hidden');
       } catch (e) {
         loading.classList.add('hidden');
         resultContent.classList.remove('hidden');
         resultContent.innerHTML = '<p class="text-red-500">出错了，请检查服务是否正常运行。</p>';
       }
+    }
+
+    async function generateResume() {
+      if (!selectedFile) return;
+      const jd = document.getElementById('jdInput').value.trim();
+
+      const optimizeBox = document.getElementById('optimizeBox');
+      const optimizeLoading = document.getElementById('optimizeLoading');
+      const optimizeResult = document.getElementById('optimizeResult');
+
+      optimizeBox.classList.remove('hidden');
+      optimizeLoading.classList.remove('hidden');
+      optimizeResult.classList.add('hidden');
+      optimizeBox.scrollIntoView({ behavior: 'smooth' });
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('jd', jd);
+
+      try {
+        const res = await fetch('/optimize-resume', { method: 'POST', body: formData });
+        const result = await res.json();
+        if (result.status !== 'ok') {
+          optimizeLoading.classList.add('hidden');
+          optimizeResult.classList.remove('hidden');
+          optimizeResult.innerHTML = '<p class="text-red-500">简历生成失败：' + (result.message || '') + '</p>';
+          return;
+        }
+        optimizedData = result.data;
+        optimizeLoading.classList.add('hidden');
+        optimizeResult.classList.remove('hidden');
+      } catch (e) {
+        optimizeLoading.classList.add('hidden');
+        optimizeResult.classList.remove('hidden');
+        optimizeResult.innerHTML = '<p class="text-red-500">出错了，请检查服务是否正常运行。</p>';
+      }
+    }
+
+    async function downloadDocx() {
+      if (!optimizedData) return;
+      const res = await fetch('/build-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: optimizedData })
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+      a.download = match ? decodeURIComponent(match[1]) : 'optimized_resume.docx';
+      a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 
