@@ -66,6 +66,26 @@
     </div>
   </div>
 
+  <!-- Activity Heatmap -->
+  <div class="bg-white rounded-2xl p-6 shadow-sm mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-gray-600">每日投递热力图</h3>
+      <div id="heatmapLegend" class="flex items-center gap-1.5 text-xs text-gray-400">
+        <span>少</span>
+        <span class="w-3 h-3 rounded-sm inline-block" style="background:#e5e7eb"></span>
+        <span class="w-3 h-3 rounded-sm inline-block" style="background:#bfdbfe"></span>
+        <span class="w-3 h-3 rounded-sm inline-block" style="background:#60a5fa"></span>
+        <span class="w-3 h-3 rounded-sm inline-block" style="background:#2563eb"></span>
+        <span class="w-3 h-3 rounded-sm inline-block" style="background:#1e3a8a"></span>
+        <span>多</span>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <div class="flex gap-1 min-w-max" id="heatmapGrid"></div>
+    </div>
+    <div id="heatmapTooltip" class="hidden fixed z-50 bg-gray-800 text-white text-xs rounded-lg px-3 py-1.5 pointer-events-none shadow-lg"></div>
+  </div>
+
   <!-- View Toggle + Filter -->
   <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
     <div class="flex gap-2">
@@ -308,6 +328,7 @@ async function loadAll() {
   apps = appsRes;
   renderStats(statsRes);
   renderCharts(statsRes);
+  renderHeatmap();
   populateStatusFilter();
   renderAll();
 }
@@ -352,6 +373,85 @@ function renderCharts(s) {
       scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { ticks: { font: { size: 10 } } } },
     }
   });
+}
+
+function renderHeatmap() {
+  const WEEKS = 20;
+  const DAY_LABELS = ['日','一','二','三','四','五','六'];
+  const COLORS = ['#e5e7eb','#bfdbfe','#60a5fa','#2563eb','#1e3a8a'];
+
+  // Build date → count map from apps
+  const countMap = {};
+  apps.forEach(a => {
+    if (a.applied_date) countMap[a.applied_date] = (countMap[a.applied_date] || 0) + 1;
+  });
+
+  // Find the Sunday that is WEEKS weeks ago
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - today.getDay() - (WEEKS - 1) * 7);
+
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '';
+
+  // Day-of-week label column
+  const labelCol = document.createElement('div');
+  labelCol.className = 'flex flex-col gap-1 mr-1';
+  labelCol.innerHTML = `<div class="h-5"></div>` + // spacer for month row
+    DAY_LABELS.map((d, i) => `<div class="h-3 text-xs text-gray-300 leading-3 w-3 text-center" style="${[0,2,4,6].includes(i)?'':'opacity:0'}">${d}</div>`).join('');
+  grid.appendChild(labelCol);
+
+  let currentMonth = -1;
+  for (let w = 0; w < WEEKS; w++) {
+    const col = document.createElement('div');
+    col.className = 'flex flex-col gap-1';
+
+    // Month label on first day of month
+    const weekStart = new Date(startDate);
+    weekStart.setDate(startDate.getDate() + w * 7);
+    const monthLabel = document.createElement('div');
+    monthLabel.className = 'h-5 text-xs text-gray-400 leading-5 whitespace-nowrap';
+    const monthOfWeek = weekStart.getMonth();
+    if (monthOfWeek !== currentMonth) {
+      currentMonth = monthOfWeek;
+      monthLabel.textContent = (monthOfWeek + 1) + '月';
+    }
+    col.appendChild(monthLabel);
+
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + w * 7 + d);
+      if (date > today) {
+        const empty = document.createElement('div');
+        empty.className = 'w-3 h-3 rounded-sm';
+        col.appendChild(empty);
+        continue;
+      }
+      const dateStr = date.toISOString().slice(0, 10);
+      const count = countMap[dateStr] || 0;
+      const colorIdx = count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : count <= 4 ? 3 : 4;
+      const cell = document.createElement('div');
+      cell.className = 'w-3 h-3 rounded-sm cursor-default transition-transform hover:scale-125';
+      cell.style.background = COLORS[colorIdx];
+      cell.dataset.date = dateStr;
+      cell.dataset.count = count;
+      cell.addEventListener('mouseenter', e => {
+        const tip = document.getElementById('heatmapTooltip');
+        tip.textContent = `${dateStr}：${count} 条投递`;
+        tip.classList.remove('hidden');
+      });
+      cell.addEventListener('mousemove', e => {
+        const tip = document.getElementById('heatmapTooltip');
+        tip.style.left = (e.clientX + 12) + 'px';
+        tip.style.top  = (e.clientY - 28) + 'px';
+      });
+      cell.addEventListener('mouseleave', () => {
+        document.getElementById('heatmapTooltip').classList.add('hidden');
+      });
+      col.appendChild(cell);
+    }
+    grid.appendChild(col);
+  }
 }
 
 function populateStatusFilter() {
