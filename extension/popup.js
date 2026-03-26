@@ -639,10 +639,12 @@ function pageFillerFn(profile) {
         if (a0 && !a0.value.trim()) { setNative(a0, award.name); filled++; }
         const a1 = lastPh('奖励荣誉获得时间');
         if (a1 && !a1.value.trim() && award.date && award.date !== '无') if (setDateEl(a1, award.date)) filled++;
-        // 颁奖机构：用学校名兜底
+        // 颁奖机构：优先用 award.institution，其次学校名兜底
         const a2 = lastPh('颁奖机构');
         if (a2 && !a2.value.trim()) {
-          const inst = profile.education?.[0]?.school;
+          const inst = (award.institution && award.institution !== '无')
+            ? award.institution
+            : profile.education?.[0]?.school;
           if (inst && inst !== '无') { setNative(a2, inst); filled++; }
         }
         await saveCur();
@@ -655,12 +657,19 @@ function pageFillerFn(profile) {
       const ta8 = Array.from(document.querySelectorAll('textarea'))
         .find(t => t.placeholder.includes('专长'));
       if (ta8 && !ta8.value.trim()) {
-        const techSkills = gv('skills.technical');
-        const projs = (profile.projects || []).filter(p => p.name && p.name !== '无');
-        const parts = [];
-        if (techSkills) parts.push('技能：' + techSkills);
-        if (projs.length) parts.push('项目经历：' + projs.map(p => p.name).join('；'));
-        const summary = parts.join('\n');
+        // 优先用用户填写的自我评价，否则自动拼装
+        const selfIntro = profile.extended?.self_intro;
+        let summary = '';
+        if (selfIntro && selfIntro !== '无') {
+          summary = selfIntro;
+        } else {
+          const techSkills = gv('skills.technical');
+          const projs = (profile.projects || []).filter(p => p.name && p.name !== '无');
+          const parts = [];
+          if (techSkills) parts.push('技能：' + techSkills);
+          if (projs.length) parts.push('项目经历：' + projs.map(p => p.name).join('；'));
+          summary = parts.join('\n');
+        }
         if (summary) { setNative(ta8, summary); filled++; await saveCur(); }
       }
 

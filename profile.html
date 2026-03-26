@@ -134,6 +134,16 @@
       <div id="awardsContent"></div>
     </div>
 
+    <!-- 证书资质 -->
+    <div id="certsSection" class="bg-white rounded-2xl shadow-sm p-6">
+      <div class="flex justify-between items-center mb-4">
+        <div class="section-title mb-0 border-0 pb-0">证书资质</div>
+      </div>
+      <div class="border-b border-indigo-100 mb-4"></div>
+      <p class="text-xs text-gray-400 mb-3">语言证书、职业资格证、计算机证书等</p>
+      <div id="certsContent"></div>
+    </div>
+
   </div>
 
   <!-- 空状态 -->
@@ -299,6 +309,7 @@ function renderProfile(d) {
   renderActivities(d.activities);
   renderSkills(d.skills);
   renderAwards(d.awards);
+  renderCerts(d.certificates);
 }
 
 // ═══════════════════════════════════════════════
@@ -384,6 +395,9 @@ const EXTENDED_FIELDS = [
   { key: 'salary_max',   label: '期望薪资（最高）', type: 'text', placeholder: '如 12000' },
   { key: 'availability', label: '到岗时间', type: 'select', options: ['随时到岗','1个月内','3个月内','半年内'] },
   { key: 'job_type',     label: '工作性质', type: 'select', options: ['全职','兼职','实习','不限'] },
+  { key: 'industry',     label: '期望行业', type: 'text',   placeholder: '如 互联网 / 金融 / 咨询' },
+  { key: 'job_category', label: '期望职位', type: 'text',   placeholder: '如 数据分析 / 投资研究' },
+  { key: 'self_intro',   label: '自我评价', type: 'textarea', placeholder: '简短介绍核心优势和求职方向（150字以内）' },
 ];
 
 function renderExtended(ext) {
@@ -412,6 +426,11 @@ function editExtended() {
             <select id="ext-${f.key}" class="${INP}">
               <option value="">请选择</option>${opts}
             </select>
+          </div>`;
+        } else if (f.type === 'textarea') {
+          return `<div class="col-span-2">
+            <div class="label">${f.label}</div>
+            <textarea id="ext-${f.key}" class="${TEA} h-20 mt-1" placeholder="${f.placeholder||''}">${esc(ext[f.key]||'')}</textarea>
           </div>`;
         } else {
           return `<div>
@@ -797,7 +816,10 @@ function renderAwards(list) {
   document.getElementById('awardsContent').innerHTML =
     list.map((a, i) => `
       <div id="award-${i}" class="card flex justify-between items-center">
-        <div class="value">${esc(a.name)}</div>
+        <div>
+          <div class="value">${esc(a.name)}</div>
+          ${a.institution ? `<div class="text-xs text-gray-400 mt-0.5">${esc(a.institution)}</div>` : ''}
+        </div>
         <div class="flex items-center gap-3">
           <div class="text-xs text-gray-400">${esc(a.date)}</div>
           ${actionBtns(`editAward(${i})`, `deleteAward(${i})`)}
@@ -813,6 +835,7 @@ function editAward(idx) {
       <div class="grid grid-cols-2 gap-3">
         ${ef('奖项名称','award-'+idx+'-name',a.name)}
         ${ef('时间','award-'+idx+'-date',a.date)}
+        ${ef('颁奖机构','award-'+idx+'-institution',a.institution)}
       </div>
       <div class="flex gap-2 mt-3">
         <button onclick="saveAward(${idx})" class="${BTN1}">保存</button>
@@ -825,6 +848,7 @@ function saveAward(idx) {
   profileData.awards[idx] = {
     name: document.getElementById(`award-${idx}-name`).value,
     date: document.getElementById(`award-${idx}-date`).value,
+    institution: document.getElementById(`award-${idx}-institution`).value,
   };
   renderAwards(profileData.awards);
   saveProfile();
@@ -839,10 +863,74 @@ function deleteAward(idx) {
 
 function addAward() {
   if (!profileData.awards) profileData.awards = [];
-  profileData.awards.push({name:'',date:''});
+  profileData.awards.push({name:'',date:'',institution:''});
   document.getElementById('awardsSection').classList.remove('hidden');
   renderAwards(profileData.awards);
   editAward(profileData.awards.length - 1);
+}
+
+// ═══════════════════════════════════════════════
+// 证书资质
+// ═══════════════════════════════════════════════
+function renderCerts(list) {
+  list = list || [];
+  document.getElementById('certsContent').innerHTML =
+    list.map((c, i) => `
+      <div id="cert-${i}" class="card flex justify-between items-center">
+        <div>
+          <div class="value">${esc(c.name)}</div>
+          ${c.level ? `<span class="tag">${esc(c.level)}</span>` : ''}
+          ${c.issuer ? `<div class="text-xs text-gray-400 mt-0.5">${esc(c.issuer)}</div>` : ''}
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-gray-400">${esc(c.date||'')}</div>
+          ${actionBtns(`editCert(${i})`, `deleteCert(${i})`)}
+        </div>
+      </div>`).join('') +
+    `<button onclick="addCert()" class="${ADD_BTN}">+ 添加证书</button>`;
+}
+
+function editCert(idx) {
+  const c = (profileData.certificates||[])[idx] || {};
+  document.getElementById(`cert-${idx}`).outerHTML = `
+    <div id="cert-${idx}" class="card-edit">
+      <div class="grid grid-cols-2 gap-3">
+        ${ef('证书名称','cert-'+idx+'-name',c.name)}
+        ${ef('获得时间','cert-'+idx+'-date',c.date)}
+        ${ef('等级/分数','cert-'+idx+'-level',c.level)}
+        ${ef('发证机构','cert-'+idx+'-issuer',c.issuer)}
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="saveCert(${idx})" class="${BTN1}">保存</button>
+        <button onclick="renderCerts(profileData.certificates)" class="${BTN2}">取消</button>
+      </div>
+    </div>`;
+}
+
+function saveCert(idx) {
+  if (!profileData.certificates) profileData.certificates = [];
+  profileData.certificates[idx] = {
+    name:   document.getElementById(`cert-${idx}-name`).value,
+    date:   document.getElementById(`cert-${idx}-date`).value,
+    level:  document.getElementById(`cert-${idx}-level`).value,
+    issuer: document.getElementById(`cert-${idx}-issuer`).value,
+  };
+  renderCerts(profileData.certificates);
+  saveProfile();
+}
+
+function deleteCert(idx) {
+  if (!confirm('确定删除？')) return;
+  profileData.certificates.splice(idx, 1);
+  renderCerts(profileData.certificates);
+  saveProfile();
+}
+
+function addCert() {
+  if (!profileData.certificates) profileData.certificates = [];
+  profileData.certificates.push({name:'',date:'',level:'',issuer:''});
+  renderCerts(profileData.certificates);
+  editCert(profileData.certificates.length - 1);
 }
 
 // ═══════════════════════════════════════════════
