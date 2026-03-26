@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>投递追踪</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .status-badge { @apply text-xs font-medium px-2.5 py-0.5 rounded-full; }
+    .kanban-col { min-height: 120px; }
+    [x-cloak] { display: none; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div class="max-w-7xl mx-auto py-10 px-4">
+
+  <!-- Nav -->
+  <div class="flex justify-center gap-2 mb-8">
+    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
+    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
+    <a href="/tracker" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">投递追踪</a>
+  </div>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">投递追踪</h1>
+      <p class="text-gray-400 text-sm mt-1">管理你的求职进度</p>
+    </div>
+    <button onclick="openModal()" class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2">
+      <span class="text-lg leading-none">+</span> 添加投递
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="statsRow">
+    <div class="bg-white rounded-2xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400 mb-1">总投递</p>
+      <p class="text-3xl font-bold text-gray-800" id="statTotal">–</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400 mb-1">进行中</p>
+      <p class="text-3xl font-bold text-blue-500" id="statProgress">–</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400 mb-1">Offer</p>
+      <p class="text-3xl font-bold text-green-500" id="statOffer">–</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400 mb-1">已拒绝</p>
+      <p class="text-3xl font-bold text-red-400" id="statRejected">–</p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-2xl p-6 shadow-sm">
+      <h3 class="text-sm font-semibold text-gray-600 mb-4">投递状态分布</h3>
+      <div class="flex justify-center"><canvas id="statusChart" width="260" height="260" style="max-width:260px"></canvas></div>
+    </div>
+    <div class="bg-white rounded-2xl p-6 shadow-sm">
+      <h3 class="text-sm font-semibold text-gray-600 mb-4">每周投递量</h3>
+      <canvas id="weekChart" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- View Toggle + Filter -->
+  <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+    <div class="flex gap-2">
+      <button id="btnKanban" onclick="setView('kanban')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white">看板</button>
+      <button id="btnTable" onclick="setView('table')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-500 border border-gray-200">表格</button>
+    </div>
+    <div class="flex gap-2 items-center">
+      <input id="filterInput" type="text" placeholder="搜索公司 / 职位..."
+        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-48"
+        oninput="renderAll()"/>
+      <select id="filterStatus" onchange="renderAll()"
+        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        <option value="">全部状态</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Kanban -->
+  <div id="kanbanView">
+    <div class="flex gap-4 overflow-x-auto pb-4" id="kanbanBoard"></div>
+  </div>
+
+  <!-- Table -->
+  <div id="tableView" class="hidden">
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100">
+            <th class="text-left p-4 text-gray-400 font-medium">公司</th>
+            <th class="text-left p-4 text-gray-400 font-medium">职位</th>
+            <th class="text-left p-4 text-gray-400 font-medium hidden md:table-cell">投递日期</th>
+            <th class="text-left p-4 text-gray-400 font-medium">状态</th>
+            <th class="text-left p-4 text-gray-400 font-medium hidden md:table-cell">来源</th>
+            <th class="text-left p-4 text-gray-400 font-medium hidden lg:table-cell">薪资</th>
+            <th class="p-4"></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="tableEmpty" class="hidden text-center py-16 text-gray-300 text-sm">暂无投递记录</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div id="modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+      <h2 class="font-semibold text-gray-800" id="modalTitle">添加投递</h2>
+      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="editId"/>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">公司名称 *</label>
+          <input id="fCompany" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="字节跳动"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">投递职位 *</label>
+          <input id="fPosition" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="数据分析师"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">投递日期</label>
+          <input id="fDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">当前状态</label>
+          <select id="fStatus" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>待投递</option>
+            <option selected>已投递</option>
+            <option>简历通过</option>
+            <option>笔试/测评</option>
+            <option>面试中</option>
+            <option>Offer</option>
+            <option>已拒绝</option>
+            <option>已放弃</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">投递来源</label>
+          <input id="fSource" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="智联招聘 / 内推 / 官网"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">工作地点</label>
+          <input id="fLocation" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="北京"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">薪资范围</label>
+          <input id="fSalary" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="15-20K"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">职位链接</label>
+          <input id="fUrl" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="https://..."/>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">备注</label>
+        <textarea id="fNotes" rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" placeholder="面试时间、联系人、注意事项..."></textarea>
+      </div>
+    </div>
+    <div class="p-6 pt-0 flex gap-3">
+      <button onclick="saveApp()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl text-sm transition-colors">保存</button>
+      <button onclick="closeModal()" class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm hover:bg-gray-50 transition-colors">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STATUS_CONFIG = {
+  '待投递':  { bg: 'bg-gray-100',   text: 'text-gray-500',  dot: '#9ca3af' },
+  '已投递':  { bg: 'bg-blue-50',    text: 'text-blue-600',  dot: '#3b82f6' },
+  '简历通过':{ bg: 'bg-purple-50',  text: 'text-purple-600',dot: '#9333ea' },
+  '笔试/测评':{ bg: 'bg-yellow-50', text: 'text-yellow-700',dot: '#eab308' },
+  '面试中':  { bg: 'bg-orange-50',  text: 'text-orange-600',dot: '#f97316' },
+  'Offer':   { bg: 'bg-green-50',   text: 'text-green-600', dot: '#22c55e' },
+  '已拒绝':  { bg: 'bg-red-50',     text: 'text-red-500',   dot: '#ef4444' },
+  '已放弃':  { bg: 'bg-gray-100',   text: 'text-gray-400',  dot: '#d1d5db' },
+};
+const STATUS_ORDER = Object.keys(STATUS_CONFIG);
+
+let apps = [];
+let currentView = 'kanban';
+let statusChart = null, weekChart = null;
+
+async function loadAll() {
+  const [appsRes, statsRes] = await Promise.all([
+    fetch('/applications').then(r => r.json()),
+    fetch('/applications/stats').then(r => r.json()),
+  ]);
+  apps = appsRes;
+  renderStats(statsRes);
+  renderCharts(statsRes);
+  populateStatusFilter();
+  renderAll();
+}
+
+function renderStats(s) {
+  document.getElementById('statTotal').textContent = s.total;
+  document.getElementById('statProgress').textContent = s.in_progress;
+  document.getElementById('statOffer').textContent = s.offers;
+  document.getElementById('statRejected').textContent = s.rejected;
+}
+
+function renderCharts(s) {
+  // Status donut
+  const byStatus = s.by_status || {};
+  const labels = Object.keys(byStatus);
+  const values = Object.values(byStatus);
+  const colors = labels.map(l => STATUS_CONFIG[l]?.dot || '#94a3b8');
+
+  if (statusChart) statusChart.destroy();
+  statusChart = new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } },
+    }
+  });
+
+  // Weekly bar
+  const weeks = (s.by_week || []);
+  if (weekChart) weekChart.destroy();
+  weekChart = new Chart(document.getElementById('weekChart'), {
+    type: 'bar',
+    data: {
+      labels: weeks.map(w => w.week),
+      datasets: [{ label: '投递数', data: weeks.map(w => w.count), backgroundColor: '#93c5fd', borderRadius: 6 }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { ticks: { font: { size: 10 } } } },
+    }
+  });
+}
+
+function populateStatusFilter() {
+  const sel = document.getElementById('filterStatus');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部状态</option>';
+  STATUS_ORDER.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    if (s === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function filteredApps() {
+  const q = document.getElementById('filterInput').value.trim().toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  return apps.filter(a =>
+    (!q || a.company.toLowerCase().includes(q) || a.position.toLowerCase().includes(q)) &&
+    (!st || a.status === st)
+  );
+}
+
+function renderAll() {
+  if (currentView === 'kanban') renderKanban();
+  else renderTable();
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('kanbanView').classList.toggle('hidden', v !== 'kanban');
+  document.getElementById('tableView').classList.toggle('hidden', v !== 'table');
+  document.getElementById('btnKanban').className = `view-btn px-4 py-2 rounded-lg text-sm font-medium ${v==='kanban' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`;
+  document.getElementById('btnTable').className = `view-btn px-4 py-2 rounded-lg text-sm font-medium ${v==='table' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`;
+  renderAll();
+}
+
+function renderKanban() {
+  const list = filteredApps();
+  const byStatus = {};
+  STATUS_ORDER.forEach(s => byStatus[s] = []);
+  list.forEach(a => { if (byStatus[a.status]) byStatus[a.status].push(a); });
+
+  const board = document.getElementById('kanbanBoard');
+  board.innerHTML = '';
+  STATUS_ORDER.forEach(status => {
+    const cfg = STATUS_CONFIG[status];
+    const cards = byStatus[status];
+    const col = document.createElement('div');
+    col.className = 'kanban-col flex-shrink-0 w-56 bg-gray-100 rounded-2xl p-3';
+    col.innerHTML = `
+      <div class="flex items-center gap-2 mb-3 px-1">
+        <span class="w-2 h-2 rounded-full inline-block" style="background:${cfg.dot}"></span>
+        <span class="text-xs font-semibold text-gray-600">${status}</span>
+        <span class="ml-auto text-xs text-gray-400">${cards.length}</span>
+      </div>
+      <div class="space-y-2" id="col_${status.replace(/\//g,'_')}"></div>`;
+    board.appendChild(col);
+    const container = col.querySelector(`#col_${status.replace(/\//g,'_')}`);
+    cards.forEach(a => container.appendChild(makeCard(a)));
+  });
+}
+
+function makeCard(a) {
+  const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG['已投递'];
+  const div = document.createElement('div');
+  div.className = 'bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow';
+  div.onclick = () => openModal(a);
+  div.innerHTML = `
+    <p class="font-semibold text-gray-800 text-sm truncate">${a.company}</p>
+    <p class="text-xs text-gray-400 mt-0.5 truncate">${a.position}</p>
+    ${a.applied_date ? `<p class="text-xs text-gray-300 mt-2">${a.applied_date}</p>` : ''}
+    ${a.salary_range ? `<p class="text-xs text-blue-400 mt-0.5">${a.salary_range}</p>` : ''}`;
+  return div;
+}
+
+function renderTable() {
+  const list = filteredApps();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('tableEmpty');
+  tbody.innerHTML = '';
+  if (!list.length) { empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  list.forEach(a => {
+    const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG['已投递'];
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-gray-50 hover:bg-gray-50 cursor-pointer';
+    tr.onclick = () => openModal(a);
+    tr.innerHTML = `
+      <td class="p-4 font-medium text-gray-800">${a.company}</td>
+      <td class="p-4 text-gray-600">${a.position}</td>
+      <td class="p-4 text-gray-400 hidden md:table-cell">${a.applied_date || '–'}</td>
+      <td class="p-4">
+        <span class="status-badge ${cfg.bg} ${cfg.text}">${a.status}</span>
+      </td>
+      <td class="p-4 text-gray-400 hidden md:table-cell">${a.source || '–'}</td>
+      <td class="p-4 text-gray-400 hidden lg:table-cell">${a.salary_range || '–'}</td>
+      <td class="p-4">
+        <button onclick="event.stopPropagation();deleteApp(${a.id})" class="text-gray-300 hover:text-red-400 text-lg leading-none transition-colors">×</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function openModal(a) {
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modalTitle').textContent = a ? '编辑投递' : '添加投递';
+  document.getElementById('editId').value = a ? a.id : '';
+  document.getElementById('fCompany').value = a?.company || '';
+  document.getElementById('fPosition').value = a?.position || '';
+  document.getElementById('fDate').value = a?.applied_date || new Date().toISOString().slice(0,10);
+  document.getElementById('fStatus').value = a?.status || '已投递';
+  document.getElementById('fSource').value = a?.source || '';
+  document.getElementById('fLocation').value = a?.location || '';
+  document.getElementById('fSalary').value = a?.salary_range || '';
+  document.getElementById('fUrl').value = a?.job_url || '';
+  document.getElementById('fNotes').value = a?.notes || '';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+async function saveApp() {
+  const company = document.getElementById('fCompany').value.trim();
+  const position = document.getElementById('fPosition').value.trim();
+  if (!company || !position) { alert('请填写公司和职位'); return; }
+
+  const payload = {
+    company, position,
+    applied_date: document.getElementById('fDate').value,
+    status: document.getElementById('fStatus').value,
+    source: document.getElementById('fSource').value,
+    location: document.getElementById('fLocation').value,
+    salary_range: document.getElementById('fSalary').value,
+    job_url: document.getElementById('fUrl').value,
+    notes: document.getElementById('fNotes').value,
+  };
+
+  const id = document.getElementById('editId').value;
+  if (id) {
+    await fetch(`/applications/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  } else {
+    await fetch('/applications', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  }
+  closeModal();
+  await loadAll();
+}
+
+async function deleteApp(id) {
+  if (!confirm('确认删除这条投递记录？')) return;
+  await fetch(`/applications/${id}`, { method: 'DELETE' });
+  await loadAll();
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+loadAll();
+</script>
+
+</body>
+</html>

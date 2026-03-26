@@ -12,12 +12,29 @@ def get_conn():
 
 def init_db():
     conn = get_conn()
-    # 新的多档案表
+    # 多档案表
     conn.execute("""
         CREATE TABLE IF NOT EXISTS profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # 投递记录表
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS applications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company TEXT NOT NULL,
+            position TEXT NOT NULL,
+            job_url TEXT DEFAULT '',
+            applied_date TEXT DEFAULT '',
+            status TEXT DEFAULT '已投递',
+            source TEXT DEFAULT '',
+            location TEXT DEFAULT '',
+            salary_range TEXT DEFAULT '',
+            notes TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -81,3 +98,87 @@ def delete_profile_by_id(profile_id: int):
     conn.execute("DELETE FROM profiles WHERE id=?", (profile_id,))
     conn.commit()
     conn.close()
+
+
+# ─── 投递记录 ─────────────────────────────────────────────
+
+def _row_to_app(r) -> dict:
+    return {
+        "id": r["id"], "company": r["company"], "position": r["position"],
+        "job_url": r["job_url"], "applied_date": r["applied_date"],
+        "status": r["status"], "source": r["source"], "location": r["location"],
+        "salary_range": r["salary_range"], "notes": r["notes"],
+        "created_at": r["created_at"], "updated_at": r["updated_at"],
+    }
+
+
+def list_applications() -> list:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM applications ORDER BY applied_date DESC, created_at DESC"
+    ).fetchall()
+    conn.close()
+    return [_row_to_app(r) for r in rows]
+
+
+def create_application(data: dict) -> int:
+    conn = get_conn()
+    cur = conn.execute(
+        """INSERT INTO applications
+           (company, position, job_url, applied_date, status, source, location, salary_range, notes)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (data.get("company",""), data.get("position",""), data.get("job_url",""),
+         data.get("applied_date",""), data.get("status","已投递"), data.get("source",""),
+         data.get("location",""), data.get("salary_range",""), data.get("notes",""))
+    )
+    app_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return app_id
+
+
+def update_application(app_id: int, data: dict):
+    conn = get_conn()
+    conn.execute(
+        """UPDATE applications SET
+           company=?, position=?, job_url=?, applied_date=?, status=?,
+           source=?, location=?, salary_range=?, notes=?, updated_at=CURRENT_TIMESTAMP
+           WHERE id=?""",
+        (data.get("company",""), data.get("position",""), data.get("job_url",""),
+         data.get("applied_date",""), data.get("status","已投递"), data.get("source",""),
+         data.get("location",""), data.get("salary_range",""), data.get("notes",""), app_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_application(app_id: int):
+    conn = get_conn()
+    conn.execute("DELETE FROM applications WHERE id=?", (app_id,))
+    conn.commit()
+    conn.close()
+
+
+def get_application_stats() -> dict:
+    conn = get_conn()
+    rows = conn.execute("SELECT status, COUNT(*) as cnt FROM applications GROUP BY status").fetchall()
+    by_week = conn.execute("""
+        SELECT strftime('%Y-W%W', applied_date) as week, COUNT(*) as cnt
+        FROM applications WHERE applied_date != ''
+        GROUP BY week ORDER BY week DESC LIMIT 12
+    """).fetchall()
+    conn.close()
+    status_counts = {r["status"]: r["cnt"] for r in rows}
+    total = sum(status_counts.values())
+    in_progress_statuses = {"简历通过", "笔试/测评", "面试中"}
+    in_progress = sum(v for k, v in status_counts.items() if k in in_progress_statuses)
+    offers = status_counts.get("Offer", 0)
+    rejected = status_counts.get("已拒绝", 0)
+    return {
+        "total": total,
+        "in_progress": in_progress,
+        "offers": offers,
+        "rejected": rejected,
+        "by_status": status_counts,
+        "by_week": [{"week": r["week"], "count": r["cnt"]} for r in reversed(by_week)],
+    }

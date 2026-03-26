@@ -15,7 +15,9 @@ from dotenv import load_dotenv
 
 from database import (
     init_db, list_profiles, create_profile,
-    get_profile, update_profile_data, delete_profile_by_id
+    get_profile, update_profile_data, delete_profile_by_id,
+    list_applications, create_application, update_application,
+    delete_application, get_application_stats,
 )
 
 load_dotenv()
@@ -443,6 +445,32 @@ async def api_delete_profile(profile_id: int):
     return {"status": "ok"}
 
 
+# ─── 投递记录 CRUD ───────────────────────────────────────
+
+@app.get("/applications")
+async def api_list_applications():
+    return list_applications()
+
+@app.post("/applications")
+async def api_create_application(payload: dict):
+    app_id = create_application(payload)
+    return {"id": app_id}
+
+@app.put("/applications/{app_id}")
+async def api_update_application(app_id: int, payload: dict):
+    update_application(app_id, payload)
+    return {"status": "ok"}
+
+@app.delete("/applications/{app_id}")
+async def api_delete_application(app_id: int):
+    delete_application(app_id)
+    return {"status": "ok"}
+
+@app.get("/applications/stats")
+async def api_application_stats():
+    return get_application_stats()
+
+
 # ─── 页面路由 ────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -454,6 +482,12 @@ async def index():
 @app.get("/profile-page", response_class=HTMLResponse)
 async def profile_page():
     with open("profile.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/tracker", response_class=HTMLResponse)
+async def tracker_page():
+    with open("tracker.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
