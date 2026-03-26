@@ -558,35 +558,39 @@ function pageFillerFn(profile) {
 
       // ══ 3. 实习/工作经历 ════════════════════════════════
       await navTo(3);
-      let firstExp = true;
-      for (const exp of (profile.experience || [])) {
-        if (!exp.company || exp.company === '无') continue;
-        if (firstExp) { await openForEdit(); firstExp = false; }
-        else { await addNew(); }
-        const e0 = lastPh('单位的名称');
-        if (e0 && !e0.value.trim()) if (setNative(e0, exp.company)) filled++;
-        const e1 = lastPh('入职时间');
-        if (e1 && !e1.value.trim() && exp.start && exp.start !== '无') if (setDateEl(e1, exp.start)) filled++;
-        const e2 = lastPh('离职时间');
-        if (e2 && !e2.value.trim() && exp.end && exp.end !== '无') if (setDateEl(e2, exp.end)) filled++;
-        const e3 = lastPh('职务');
-        if (e3 && !e3.value.trim() && exp.title && exp.title !== '无') if (setNative(e3, exp.title)) filled++;
-        // 工作类型 select（2=全职, 1=兼职, 4=实习）
-        const typeVal = exp.type?.includes('全职') ? 2 : exp.type?.includes('兼职') ? 1 : 4;
-        const typeSel = Array.from(document.querySelectorAll('.el-select'))
-          .find(s => s.querySelector('.el-input__inner')?.placeholder.includes('工作类型'));
-        if (typeSel?.__vue__?.options) {
-          const opt = typeSel.__vue__.options.find(o => o.value === typeVal);
-          if (opt) typeSel.__vue__.handleOptionSelect(opt, true);
+      const validExps = (profile.experience || []).filter(e => e.company && e.company !== '无');
+      // 统计已有条目（每条有一个"编辑"按钮），只补填缺少的部分
+      const existingExpCount = [...document.querySelectorAll('.icon-box .icon-text')]
+        .filter(s => s.textContent.trim() === '编辑').length;
+      if (existingExpCount < validExps.length) {
+        for (let ei = existingExpCount; ei < validExps.length; ei++) {
+          const exp = validExps[ei];
+          if (ei === 0) { await openForEdit(); } else { await addNew(); }
+          const e0 = lastPh('单位的名称');
+          if (e0 && !e0.value.trim()) if (setNative(e0, exp.company)) filled++;
+          const e1 = lastPh('入职时间');
+          if (e1 && !e1.value.trim() && exp.start && exp.start !== '无') if (setDateEl(e1, exp.start)) filled++;
+          const e2 = lastPh('离职时间');
+          if (e2 && !e2.value.trim() && exp.end && exp.end !== '无') if (setDateEl(e2, exp.end)) filled++;
+          const e3 = lastPh('职务');
+          if (e3 && !e3.value.trim() && exp.title && exp.title !== '无') if (setNative(e3, exp.title)) filled++;
+          // 工作类型 select（2=全职, 1=兼职, 4=实习）
+          const typeVal = exp.type?.includes('全职') ? 2 : exp.type?.includes('兼职') ? 1 : 4;
+          const typeSel = Array.from(document.querySelectorAll('.el-select'))
+            .find(s => s.querySelector('.el-input__inner')?.placeholder.includes('工作类型'));
+          if (typeSel?.__vue__?.options) {
+            const opt = typeSel.__vue__.options.find(o => o.value === typeVal);
+            if (opt) typeSel.__vue__.handleOptionSelect(opt, true);
+          }
+          // 工作描述 textarea
+          const ta = Array.from(document.querySelectorAll('textarea'))
+            .find(t => t.placeholder.includes('工作内容'));
+          if (ta && !ta.value.trim() && exp.bullets?.length) {
+            setNative(ta, exp.bullets.join('\n'));
+            filled++;
+          }
+          await saveCur();
         }
-        // 工作描述 textarea
-        const ta = Array.from(document.querySelectorAll('textarea'))
-          .find(t => t.placeholder.includes('工作内容'));
-        if (ta && !ta.value.trim() && exp.bullets?.length) {
-          setNative(ta, exp.bullets.join('\n'));
-          filled++;
-        }
-        await saveCur();
       }
 
       // ══ 4. 语言能力 ══════════════════════════════════════
@@ -608,11 +612,12 @@ function pageFillerFn(profile) {
 
       // ══ 5. 专业技能 ══════════════════════════════════════
       await navTo(5);
-      const techList = gv('skills.technical').split(/[,，]/).map(s => s.trim()).filter(Boolean);
-      let firstSkill = true;
-      for (const skill of techList.slice(0, 5)) {
-        if (firstSkill) { await openForEdit(); firstSkill = false; }
-        else { await addNew(); }
+      const techList = gv('skills.technical').split(/[,，]/).map(s => s.trim()).filter(Boolean).slice(0, 5);
+      const existingSkillCount = [...document.querySelectorAll('.icon-box .icon-text')]
+        .filter(s => s.textContent.trim() === '编辑').length;
+      for (let si = existingSkillCount; si < techList.length; si++) {
+        const skill = techList[si];
+        if (si === 0) { await openForEdit(); } else { await addNew(); }
         // 技能类型：无 placeholder、非 el-select 内的输入框（取最后一个 = 最新添加行）
         const skillIn = Array.from(document.querySelectorAll('.el-input__inner'))
           .filter(i => !i.closest('.el-select') && !i.readOnly && !i.placeholder).pop();
@@ -630,10 +635,11 @@ function pageFillerFn(profile) {
       // ══ 6. 奖励荣誉 ══════════════════════════════════════
       await navTo(6);
       const awards = (profile.awards || []).filter(a => a.name && a.name !== '无');
-      let firstAward = true;
-      for (const award of awards) {
-        if (firstAward) { await openForEdit(); firstAward = false; }
-        else { await addNew(); }
+      const existingAwardCount = [...document.querySelectorAll('.icon-box .icon-text')]
+        .filter(s => s.textContent.trim() === '编辑').length;
+      for (let ai = existingAwardCount; ai < awards.length; ai++) {
+        const award = awards[ai];
+        if (ai === 0) { await openForEdit(); } else { await addNew(); }
         await sleep(800);
         const a0 = lastPh('在校期间所获的奖励');
         if (a0 && !a0.value.trim()) { setNative(a0, award.name); filled++; }
