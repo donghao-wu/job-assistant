@@ -62,7 +62,7 @@
     </div>
     <div class="bg-white rounded-2xl p-6 shadow-sm">
       <h3 class="text-sm font-semibold text-gray-600 mb-4">每周投递量</h3>
-      <canvas id="weekChart" height="160"></canvas>
+      <div style="position:relative;height:200px"><canvas id="weekChart"></canvas></div>
     </div>
   </div>
 
@@ -359,18 +359,70 @@ function renderCharts(s) {
     }
   });
 
-  // Weekly bar
-  const weeks = (s.by_week || []);
+  // Weekly line chart — compute from apps client-side
+  function localDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function getMondayStr(dateStr) {
+    // parse as local date to avoid UTC offset shift
+    const [y, m, day] = dateStr.split('-').map(Number);
+    const d = new Date(y, m - 1, day);
+    const dow = d.getDay();
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+    return localDateStr(d);
+  }
+
+  const weekMap = {};
+  apps.forEach(a => {
+    if (!a.applied_date) return;
+    const mon = getMondayStr(a.applied_date);
+    weekMap[mon] = (weekMap[mon] || 0) + 1;
+  });
+
+  const weekLabels = [], weekData = [];
+  const now = new Date();
+  const curDay = now.getDay();
+  const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  thisMonday.setDate(thisMonday.getDate() - (curDay === 0 ? 6 : curDay - 1));
+
+  for (let i = 11; i >= 0; i--) {
+    const mon = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - i * 7);
+    const key = localDateStr(mon);
+    weekLabels.push(`${mon.getMonth()+1}/${mon.getDate()}`);
+    weekData.push(weekMap[key] || 0);
+  }
+
   if (weekChart) weekChart.destroy();
-  weekChart = new Chart(document.getElementById('weekChart'), {
-    type: 'bar',
+  const wCtx = document.getElementById('weekChart').getContext('2d');
+  const gradient = wCtx.createLinearGradient(0, 0, 0, 160);
+  gradient.addColorStop(0, 'rgba(99,102,241,0.25)');
+  gradient.addColorStop(1, 'rgba(99,102,241,0)');
+
+  weekChart = new Chart(wCtx, {
+    type: 'line',
     data: {
-      labels: weeks.map(w => w.week),
-      datasets: [{ label: '投递数', data: weeks.map(w => w.count), backgroundColor: '#93c5fd', borderRadius: 6 }]
+      labels: weekLabels,
+      datasets: [{
+        label: '投递数',
+        data: weekData,
+        borderColor: '#6366f1',
+        borderWidth: 2,
+        pointBackgroundColor: weekData.map(v => v > 0 ? '#6366f1' : 'transparent'),
+        pointRadius: weekData.map(v => v > 0 ? 5 : 0),
+        pointHoverRadius: 7,
+        fill: true,
+        backgroundColor: gradient,
+        tension: 0.3,
+      }]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { ticks: { font: { size: 10 } } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f3f4f6' } },
+        x: { ticks: { font: { size: 10 }, color: '#9ca3af', maxRotation: 0 }, grid: { display: false } },
+      },
     }
   });
 }
