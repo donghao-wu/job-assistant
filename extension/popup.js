@@ -511,8 +511,42 @@ function pageFillerFn(profile) {
       };
 
       // ══ 0. 个人信息 ══════════════════════════════════════
-      // 该分区由智联招聘账号数据自动填充，所有字段均以 labelOnly-text 显示
-      // 无可编辑的 el-input__inner，跳过即可
+      await navTo(0);
+      await openForEdit();
+      await sleep(800);
+      const ext = profile.extended || {};
+      // 年龄（文本输入，从生日计算）
+      const ageInp = lastPh('年龄');
+      if (ageInp && !ageInp.value.trim() && ext.birthdate && ext.birthdate !== '无') {
+        const bd = parseDate(ext.birthdate);
+        if (bd) {
+          const age = Math.floor((Date.now() - bd.getTime()) / (365.25 * 24 * 3600 * 1000));
+          if (age > 10 && age < 80) { setNative(ageInp, String(age)); filled++; }
+        }
+      }
+      // 电子邮箱
+      const emailInp = lastPh('请填写有效的电子邮箱地址');
+      if (emailInp && !emailInp.value.trim() && profile.basic?.email && profile.basic.email !== '无') {
+        setNative(emailInp, profile.basic.email); filled++;
+      }
+      // 通信地址
+      const addrInp = lastPh('请填写通信地址');
+      if (addrInp && !addrInp.value.trim()) {
+        const addr = ext.hometown || profile.basic?.location;
+        if (addr && addr !== '无') { setNative(addrInp, addr); filled++; }
+      }
+      // El-Select 字段
+      document.querySelectorAll('.el-select').forEach(s => {
+        const inp = s.querySelector('.el-input__inner');
+        const ph  = inp?.placeholder || '';
+        if (inp?.value?.trim()) return;
+        if (ph.includes('民族') && ext.ethnicity && ext.ethnicity !== '无') { if (elSel(s, ext.ethnicity)) filled++; }
+        else if (ph.includes('健康状况') && ext.health && ext.health !== '无') { if (elSel(s, ext.health)) filled++; }
+        else if (ph.includes('婚姻状况') && ext.marriage && ext.marriage !== '无') { if (elSel(s, ext.marriage)) filled++; }
+        else if (ph.includes('政治面貌') && ext.political && ext.political !== '无') { if (elSel(s, ext.political)) filled++; }
+        else if (ph.includes('服从调剂')) elSel(s, '否');
+      });
+      await saveCur();
 
       // ══ 1. 教育经历 ══════════════════════════════════════
       await navTo(1);
