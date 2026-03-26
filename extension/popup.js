@@ -627,6 +627,43 @@ function pageFillerFn(profile) {
         await saveCur();
       }
 
+      // ══ 6. 奖励荣誉 ══════════════════════════════════════
+      await navTo(6);
+      const awards = (profile.awards || []).filter(a => a.name && a.name !== '无');
+      let firstAward = true;
+      for (const award of awards) {
+        if (firstAward) { await openForEdit(); firstAward = false; }
+        else { await addNew(); }
+        await sleep(800);
+        const a0 = lastPh('在校期间所获的奖励');
+        if (a0 && !a0.value.trim()) { setNative(a0, award.name); filled++; }
+        const a1 = lastPh('奖励荣誉获得时间');
+        if (a1 && !a1.value.trim() && award.date && award.date !== '无') if (setDateEl(a1, award.date)) filled++;
+        // 颁奖机构：用学校名兜底
+        const a2 = lastPh('颁奖机构');
+        if (a2 && !a2.value.trim()) {
+          const inst = profile.education?.[0]?.school;
+          if (inst && inst !== '无') { setNative(a2, inst); filled++; }
+        }
+        await saveCur();
+      }
+
+      // ══ 8. 其他信息 ══════════════════════════════════════
+      await navTo(8);
+      await openForEdit();
+      await sleep(800);
+      const ta8 = Array.from(document.querySelectorAll('textarea'))
+        .find(t => t.placeholder.includes('专长'));
+      if (ta8 && !ta8.value.trim()) {
+        const techSkills = gv('skills.technical');
+        const projs = (profile.projects || []).filter(p => p.name && p.name !== '无');
+        const parts = [];
+        if (techSkills) parts.push('技能：' + techSkills);
+        if (projs.length) parts.push('项目经历：' + projs.map(p => p.name).join('；'));
+        const summary = parts.join('\n');
+        if (summary) { setNative(ta8, summary); filled++; await saveCur(); }
+      }
+
       resolve({ filled, highlighted: 0 });
     });
   }
