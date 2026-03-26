@@ -46,18 +46,26 @@
   </div>
 
   <!-- 档案选择栏 -->
-  <div class="bg-white rounded-2xl shadow-sm p-4 mb-6 flex items-center gap-3">
+  <div class="bg-white rounded-2xl shadow-sm p-4 mb-6 flex flex-wrap items-center gap-2">
     <select id="profileSelector" onchange="onProfileChange()"
-      class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700">
+      class="flex-1 min-w-[160px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700">
       <option value="">— 暂无档案 —</option>
     </select>
     <button onclick="openModal()"
       class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
-      + 新建档案
+      + 新建
+    </button>
+    <button onclick="renameCurrentProfile()"
+      class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+      ✏️ 重命名
+    </button>
+    <button onclick="duplicateCurrentProfile()"
+      class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+      📋 复制
     </button>
     <button onclick="deleteCurrentProfile()"
-      class="bg-red-50 hover:bg-red-100 text-red-500 text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
-      删除
+      class="bg-red-50 hover:bg-red-100 text-red-500 text-sm px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+      🗑 删除
     </button>
   </div>
 
@@ -243,6 +251,40 @@ async function saveProfile() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profileData)
   });
+}
+
+// ═══════════════════════════════════════════════
+// 重命名档案
+// ═══════════════════════════════════════════════
+async function renameCurrentProfile() {
+  if (!currentProfileId) return;
+  const sel = document.getElementById('profileSelector');
+  const oldName = sel.options[sel.selectedIndex]?.text || '';
+  const newName = prompt('请输入新档案名称：', oldName);
+  if (!newName || !newName.trim() || newName.trim() === oldName) return;
+  const res = await fetch(`/profiles/${currentProfileId}/rename`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName.trim() })
+  });
+  if (res.ok) {
+    await fetchProfiles();
+    document.getElementById('profileSelector').value = currentProfileId;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// 复制档案
+// ═══════════════════════════════════════════════
+async function duplicateCurrentProfile() {
+  if (!currentProfileId) return;
+  const res = await fetch(`/profiles/${currentProfileId}/duplicate`, { method: 'POST' });
+  if (!res.ok) return;
+  const { id, name } = await res.json();
+  await fetchProfiles();
+  document.getElementById('profileSelector').value = id;
+  await loadProfile(id);
+  alert(`已复制为「${name}」`);
 }
 
 // ═══════════════════════════════════════════════

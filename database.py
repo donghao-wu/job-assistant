@@ -113,6 +113,32 @@ def delete_profile_by_id(profile_id: int):
     conn.close()
 
 
+def rename_profile(profile_id: int, name: str):
+    conn = get_conn()
+    conn.execute(
+        "UPDATE profiles SET name=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        (name, profile_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def duplicate_profile(profile_id: int) -> int | None:
+    conn = get_conn()
+    row = conn.execute("SELECT name, data FROM profiles WHERE id=?", (profile_id,)).fetchone()
+    if not row:
+        conn.close()
+        return None
+    cur = conn.execute(
+        "INSERT INTO profiles (name, data) VALUES (?, ?)",
+        (row["name"] + " (副本)", row["data"])
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return new_id
+
+
 # ─── 投递记录 ─────────────────────────────────────────────
 
 def _row_to_app(r) -> dict:

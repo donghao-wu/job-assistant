@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from database import (
     init_db, list_profiles, create_profile,
     get_profile, update_profile_data, delete_profile_by_id,
+    rename_profile, duplicate_profile,
     list_applications, create_application, update_application,
     delete_application, get_application_stats,
     list_events, create_event, delete_event,
@@ -33,10 +34,15 @@ app.add_middleware(
 )
 
 API_KEY = os.getenv("SILICONFLOW_API_KEY")
-BASE_URL = "https://api.siliconflow.cn/v1"
+TOKEN_METER_PORT = os.getenv("TOKEN_METER_PORT", "7070")
+BASE_URL = f"http://localhost:{TOKEN_METER_PORT}/job-app/v1"
 MODEL = "deepseek-ai/DeepSeek-V3"
 
-client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+client = OpenAI(
+    api_key=API_KEY,
+    base_url=BASE_URL,
+    default_headers={"x-upstream-base": "https://api.siliconflow.cn"},
+)
 
 init_db()
 
@@ -444,6 +450,25 @@ async def api_update_profile(profile_id: int, payload: dict):
 async def api_delete_profile(profile_id: int):
     delete_profile_by_id(profile_id)
     return {"status": "ok"}
+
+
+@app.patch("/profiles/{profile_id}/rename")
+async def api_rename_profile(profile_id: int, payload: dict):
+    name = payload.get("name", "").strip()
+    if not name:
+        return JSONResponse(status_code=400, content={"error": "名称不能为空"})
+    rename_profile(profile_id, name)
+    return {"status": "ok"}
+
+
+@app.post("/profiles/{profile_id}/duplicate")
+async def api_duplicate_profile(profile_id: int):
+    new_id = duplicate_profile(profile_id)
+    if not new_id:
+        return JSONResponse(status_code=404, content={"error": "档案不存在"})
+    profiles = list_profiles()
+    new_p = next((p for p in profiles if p["id"] == new_id), None)
+    return {"id": new_id, "name": new_p["name"] if new_p else "副本"}
 
 
 # ─── 投递记录 CRUD ───────────────────────────────────────
