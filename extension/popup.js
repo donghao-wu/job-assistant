@@ -1,16 +1,16 @@
 // ─── 初始化 ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  const stored = await chrome.storage.local.get('port');
-  if (stored.port) document.getElementById('portInput').value = stored.port;
+  const stored = await chrome.storage.local.get('serverUrl');
+  if (stored.serverUrl) document.getElementById('serverUrl').value = stored.serverUrl;
 
-  document.getElementById('portInput').addEventListener('change', async (e) => {
-    chrome.storage.local.set({ port: e.target.value.trim() });
+  document.getElementById('serverUrl').addEventListener('change', async (e) => {
+    chrome.storage.local.set({ serverUrl: e.target.value.trim() });
     updateProfileLink();
     await loadProfiles();
   });
-  document.getElementById('portInput').addEventListener('keydown', async (e) => {
+  document.getElementById('serverUrl').addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
-      chrome.storage.local.set({ port: e.target.value.trim() });
+      chrome.storage.local.set({ serverUrl: e.target.value.trim() });
       updateProfileLink();
       await loadProfiles();
     }
@@ -27,7 +27,9 @@ function updateProfileLink() {
 }
 
 function getBase() {
-  return `http://localhost:${document.getElementById('portInput').value.trim() || '8005'}`;
+  const raw = (document.getElementById('serverUrl')?.value || '').trim();
+  if (!raw) return 'http://localhost:8005';
+  return raw.replace(/\/+$/, '');
 }
 
 // ─── 加载档案列表 ─────────────────────────────────────────
