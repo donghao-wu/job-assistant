@@ -181,6 +181,108 @@
   </div>
 </div>
 
+<!-- Detail Panel (right drawer) -->
+<div id="detailPanel" class="hidden fixed inset-0 z-50 flex justify-end">
+  <div class="absolute inset-0 bg-black/30" onclick="closeDetail()"></div>
+  <div class="relative bg-white w-full max-w-lg shadow-2xl flex flex-col overflow-hidden">
+
+    <!-- Panel Header -->
+    <div id="dpHeader" class="p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 id="dpCompany" class="font-bold text-gray-800 text-lg truncate"></h2>
+          <span id="dpStatusBadge" class="text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
+        </div>
+        <p id="dpPosition" class="text-sm text-gray-400 mt-0.5"></p>
+        <div id="dpMeta" class="flex gap-3 mt-2 text-xs text-gray-400 flex-wrap"></div>
+      </div>
+      <div class="flex gap-2 flex-shrink-0">
+        <button onclick="openModal(currentApp)" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">编辑</button>
+        <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-600 text-xl leading-none px-1">×</button>
+      </div>
+    </div>
+
+    <!-- Status Steps -->
+    <div class="px-5 py-3 border-b border-gray-100 overflow-x-auto">
+      <div class="flex items-center gap-1 min-w-max" id="dpStatusSteps"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-gray-100 px-5">
+      <button onclick="dpTab('timeline')" id="tabTimeline" class="dp-tab py-3 text-sm font-medium text-blue-500 border-b-2 border-blue-500 mr-5">时间线</button>
+      <button onclick="dpTab('info')" id="tabInfo" class="dp-tab py-3 text-sm font-medium text-gray-400 mr-5">详细信息</button>
+    </div>
+
+    <!-- Tab: Timeline -->
+    <div id="paneTimeline" class="flex-1 overflow-y-auto p-5">
+
+      <!-- Add event quick bar -->
+      <div class="flex gap-2 mb-5 flex-wrap">
+        <button onclick="showAddEvent('interview')" class="text-xs px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 font-medium">+ 面试</button>
+        <button onclick="showAddEvent('test')"      class="text-xs px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium">+ 笔试/测评</button>
+        <button onclick="showAddEvent('status')"    class="text-xs px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 font-medium">+ 状态变更</button>
+        <button onclick="showAddEvent('note')"      class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium">+ 备注</button>
+      </div>
+
+      <!-- Add event form -->
+      <div id="addEventForm" class="hidden bg-gray-50 rounded-xl p-4 mb-5 space-y-3">
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-gray-400 mb-1">标题</label>
+            <input id="evTitle" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="一面 / 技术面试 / 收到拒信..."/>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">日期</label>
+            <input id="evDate" type="date" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+          </div>
+        </div>
+        <!-- Interview-specific fields -->
+        <div id="evInterviewFields" class="hidden grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">形式</label>
+            <select id="evInterviewType" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option>视频面试</option><option>电话面试</option><option>现场面试</option><option>HR面试</option><option>群面</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">结果</label>
+            <select id="evInterviewResult" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option>待定</option><option>通过</option><option>未通过</option><option>待通知</option>
+            </select>
+          </div>
+        </div>
+        <!-- Status change field -->
+        <div id="evStatusField" class="hidden">
+          <label class="block text-xs text-gray-400 mb-1">变更为</label>
+          <select id="evNewStatus" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>待投递</option><option>已投递</option><option>简历通过</option>
+            <option>笔试/测评</option><option>面试中</option><option>Offer</option>
+            <option>已拒绝</option><option>已放弃</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">备注内容</label>
+          <textarea id="evContent" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" placeholder="面试题目、感受、跟进事项..."></textarea>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="submitEvent()" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600">保存</button>
+          <button onclick="hideAddEvent()" class="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-300">取消</button>
+        </div>
+      </div>
+
+      <!-- Timeline list -->
+      <div id="dpTimeline" class="space-y-3"></div>
+      <div id="dpTimelineEmpty" class="hidden text-center py-10 text-gray-300 text-sm">暂无记录，点击上方按钮添加</div>
+    </div>
+
+    <!-- Tab: Info -->
+    <div id="paneInfo" class="hidden flex-1 overflow-y-auto p-5">
+      <div class="space-y-3" id="dpInfoGrid"></div>
+    </div>
+
+  </div>
+</div>
+
 <script>
 const STATUS_CONFIG = {
   '待投递':  { bg: 'bg-gray-100',   text: 'text-gray-500',  dot: '#9ca3af' },
@@ -314,10 +416,9 @@ function renderKanban() {
 }
 
 function makeCard(a) {
-  const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG['已投递'];
   const div = document.createElement('div');
   div.className = 'bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow';
-  div.onclick = () => openModal(a);
+  div.onclick = () => openDetail(a);
   div.innerHTML = `
     <p class="font-semibold text-gray-800 text-sm truncate">${a.company}</p>
     <p class="text-xs text-gray-400 mt-0.5 truncate">${a.position}</p>
@@ -337,7 +438,7 @@ function renderTable() {
     const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG['已投递'];
     const tr = document.createElement('tr');
     tr.className = 'border-b border-gray-50 hover:bg-gray-50 cursor-pointer';
-    tr.onclick = () => openModal(a);
+    tr.onclick = () => openDetail(a);
     tr.innerHTML = `
       <td class="p-4 font-medium text-gray-800">${a.company}</td>
       <td class="p-4 text-gray-600">${a.position}</td>
@@ -408,6 +509,211 @@ async function deleteApp(id) {
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target === document.getElementById('modal')) closeModal();
 });
+
+// also reload detail panel after modal save
+const _origSaveApp = saveApp;
+saveApp = async function() {
+  await _origSaveApp();
+  if (currentApp) {
+    const fresh = apps.find(a => a.id === currentApp.id);
+    if (fresh) { currentApp = fresh; renderDetailHeader(); }
+  }
+};
+
+// ─── Detail Panel ───────────────────────────────────────
+
+let currentApp = null;
+let currentEventType = 'note';
+
+const EVENT_CONFIG = {
+  interview: { icon: '🎙', label: '面试',    color: 'text-orange-500', bg: 'bg-orange-50' },
+  test:      { icon: '📝', label: '笔试/测评', color: 'text-yellow-600', bg: 'bg-yellow-50' },
+  status:    { icon: '🔄', label: '状态变更', color: 'text-purple-500', bg: 'bg-purple-50' },
+  note:      { icon: '💬', label: '备注',    color: 'text-gray-500',   bg: 'bg-gray-100'  },
+};
+
+async function openDetail(a) {
+  currentApp = a;
+  document.getElementById('detailPanel').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  hideAddEvent();
+  dpTab('timeline');
+  renderDetailHeader();
+  renderDetailInfo();
+  await loadTimeline();
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.add('hidden');
+  document.body.style.overflow = '';
+  currentApp = null;
+}
+
+function renderDetailHeader() {
+  const a = currentApp;
+  const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG['已投递'];
+  document.getElementById('dpCompany').textContent  = a.company;
+  document.getElementById('dpPosition').textContent = a.position;
+  const badge = document.getElementById('dpStatusBadge');
+  badge.textContent = a.status;
+  badge.className = `text-xs font-medium px-2.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`;
+  const meta = [
+    a.applied_date ? `📅 ${a.applied_date}` : null,
+    a.location     ? `📍 ${a.location}`     : null,
+    a.salary_range ? `💰 ${a.salary_range}` : null,
+    a.source       ? `🔗 ${a.source}`       : null,
+  ].filter(Boolean);
+  document.getElementById('dpMeta').innerHTML = meta.map(m =>
+    `<span class="text-xs text-gray-400">${m}</span>`
+  ).join('');
+
+  // Status steps
+  const steps = document.getElementById('dpStatusSteps');
+  steps.innerHTML = '';
+  STATUS_ORDER.forEach((s, i) => {
+    const active = s === a.status;
+    const past   = STATUS_ORDER.indexOf(a.status) > i &&
+                   !['已拒绝','已放弃'].includes(s);
+    const dot = document.createElement('div');
+    dot.className = 'flex items-center gap-1';
+    const circle = `<span class="w-2 h-2 rounded-full inline-block flex-shrink-0" style="background:${active || past ? STATUS_CONFIG[s].dot : '#e5e7eb'}"></span>`;
+    const label  = `<span class="text-xs ${active ? 'font-semibold text-gray-700' : 'text-gray-400'} whitespace-nowrap">${s}</span>`;
+    const arrow  = i < STATUS_ORDER.length-1 ? `<span class="text-gray-200 mx-0.5 text-xs">›</span>` : '';
+    dot.innerHTML = circle + label + arrow;
+    steps.appendChild(dot);
+  });
+}
+
+function renderDetailInfo() {
+  const a = currentApp;
+  const fields = [
+    ['公司', a.company], ['职位', a.position], ['状态', a.status],
+    ['投递日期', a.applied_date], ['来源', a.source],
+    ['地点', a.location], ['薪资', a.salary_range],
+    ['职位链接', a.job_url ? `<a href="${a.job_url}" target="_blank" class="text-blue-500 underline text-sm truncate block max-w-xs">${a.job_url}</a>` : '–'],
+    ['备注', a.notes],
+  ];
+  document.getElementById('dpInfoGrid').innerHTML = fields.map(([k, v]) => `
+    <div class="flex gap-3 py-2 border-b border-gray-50">
+      <span class="text-xs text-gray-400 w-20 flex-shrink-0 pt-0.5">${k}</span>
+      <span class="text-sm text-gray-700 flex-1">${v && v !== '无' ? v : '<span class="text-gray-300">–</span>'}</span>
+    </div>`).join('');
+}
+
+function dpTab(tab) {
+  document.getElementById('paneTimeline').classList.toggle('hidden', tab !== 'timeline');
+  document.getElementById('paneInfo').classList.toggle('hidden', tab !== 'info');
+  ['Timeline','Info'].forEach(t => {
+    const btn = document.getElementById('tab'+t);
+    const active = t.toLowerCase() === tab;
+    btn.className = `dp-tab py-3 text-sm font-medium mr-5 ${active ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`;
+  });
+}
+
+async function loadTimeline() {
+  if (!currentApp) return;
+  const events = await fetch(`/applications/${currentApp.id}/events`).then(r => r.json());
+  const container = document.getElementById('dpTimeline');
+  const empty     = document.getElementById('dpTimelineEmpty');
+  container.innerHTML = '';
+  if (!events.length) { empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  events.forEach(ev => {
+    const cfg = EVENT_CONFIG[ev.event_type] || EVENT_CONFIG.note;
+    let extra = '';
+    if (ev.event_type === 'interview' || ev.event_type === 'test') {
+      try {
+        const d = JSON.parse(ev.content || '{}');
+        if (d.type || d.result) extra = `<div class="flex gap-2 mt-1 flex-wrap">
+          ${d.type   ? `<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">${d.type}</span>` : ''}
+          ${d.result ? `<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">${d.result}</span>` : ''}
+          ${d.notes  ? `<p class="text-xs text-gray-500 mt-1 w-full">${d.notes}</p>` : ''}
+        </div>`;
+      } catch(_) { extra = ev.content ? `<p class="text-xs text-gray-500 mt-1">${ev.content}</p>` : ''; }
+    } else {
+      extra = ev.content ? `<p class="text-xs text-gray-500 mt-1">${ev.content}</p>` : '';
+    }
+    const div = document.createElement('div');
+    div.className = 'flex gap-3';
+    div.innerHTML = `
+      <div class="flex flex-col items-center">
+        <div class="w-8 h-8 rounded-full ${cfg.bg} flex items-center justify-center text-base flex-shrink-0">${cfg.icon}</div>
+        <div class="w-px flex-1 bg-gray-100 mt-1"></div>
+      </div>
+      <div class="flex-1 pb-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-medium text-gray-700">${ev.title || cfg.label}</span>
+          <div class="flex items-center gap-2">
+            ${ev.event_date ? `<span class="text-xs text-gray-300">${ev.event_date}</span>` : ''}
+            <button onclick="deleteEvent(${ev.id})" class="text-gray-200 hover:text-red-400 text-base leading-none">×</button>
+          </div>
+        </div>
+        ${extra}
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function showAddEvent(type) {
+  currentEventType = type;
+  document.getElementById('addEventForm').classList.remove('hidden');
+  document.getElementById('evInterviewFields').classList.toggle('hidden', type !== 'interview');
+  document.getElementById('evStatusField').classList.toggle('hidden', type !== 'status');
+  document.getElementById('evTitle').placeholder = {
+    interview: '一面 / 二面 / HR面...',
+    test: '笔试 / 在线测评...',
+    status: '状态更新',
+    note: '添加备注...',
+  }[type] || '';
+  document.getElementById('evDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('evTitle').focus();
+}
+
+function hideAddEvent() {
+  document.getElementById('addEventForm').classList.add('hidden');
+  document.getElementById('evTitle').value = '';
+  document.getElementById('evContent').value = '';
+}
+
+async function submitEvent() {
+  if (!currentApp) return;
+  const title = document.getElementById('evTitle').value.trim();
+  const date  = document.getElementById('evDate').value;
+  let content = document.getElementById('evContent').value.trim();
+
+  if (currentEventType === 'interview' || currentEventType === 'test') {
+    content = JSON.stringify({
+      type:   document.getElementById('evInterviewType').value,
+      result: document.getElementById('evInterviewResult').value,
+      notes:  content,
+    });
+  } else if (currentEventType === 'status') {
+    const newStatus = document.getElementById('evNewStatus').value;
+    // update application status
+    const updated = { ...currentApp, status: newStatus };
+    await fetch(`/applications/${currentApp.id}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(updated),
+    });
+    content = `${currentApp.status} → ${newStatus}`;
+    await loadAll();
+    currentApp = apps.find(a => a.id === currentApp.id) || currentApp;
+    renderDetailHeader();
+  }
+
+  await fetch(`/applications/${currentApp.id}/events`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ event_type: currentEventType, title, content, event_date: date }),
+  });
+  hideAddEvent();
+  await loadTimeline();
+}
+
+async function deleteEvent(eventId) {
+  if (!currentApp) return;
+  await fetch(`/applications/${currentApp.id}/events/${eventId}`, { method: 'DELETE' });
+  await loadTimeline();
+}
 
 loadAll();
 </script>

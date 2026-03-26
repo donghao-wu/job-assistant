@@ -18,6 +18,7 @@ from database import (
     get_profile, update_profile_data, delete_profile_by_id,
     list_applications, create_application, update_application,
     delete_application, get_application_stats,
+    list_events, create_event, delete_event,
 )
 
 load_dotenv()
@@ -469,6 +470,20 @@ async def api_delete_application(app_id: int):
 @app.get("/applications/stats")
 async def api_application_stats():
     return get_application_stats()
+
+@app.get("/applications/{app_id}/events")
+async def api_list_events(app_id: int):
+    return list_events(app_id)
+
+@app.post("/applications/{app_id}/events")
+async def api_create_event(app_id: int, payload: dict):
+    event_id = create_event(app_id, payload)
+    return {"id": event_id}
+
+@app.delete("/applications/{app_id}/events/{event_id}")
+async def api_delete_event(app_id: int, event_id: int):
+    delete_event(event_id)
+    return {"status": "ok"}
 
 
 # ─── 页面路由 ────────────────────────────────────────────

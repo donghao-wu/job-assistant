@@ -22,6 +22,19 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # 投递事件表（面试、备注、状态变更时间线）
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            app_id INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            title TEXT DEFAULT '',
+            content TEXT DEFAULT '',
+            event_date TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (app_id) REFERENCES applications(id) ON DELETE CASCADE
+        )
+    """)
     # 投递记录表
     conn.execute("""
         CREATE TABLE IF NOT EXISTS applications (
@@ -155,6 +168,36 @@ def update_application(app_id: int, data: dict):
 def delete_application(app_id: int):
     conn = get_conn()
     conn.execute("DELETE FROM applications WHERE id=?", (app_id,))
+    conn.commit()
+    conn.close()
+
+
+def list_events(app_id: int) -> list:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM app_events WHERE app_id=? ORDER BY event_date DESC, created_at DESC",
+        (app_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def create_event(app_id: int, data: dict) -> int:
+    conn = get_conn()
+    cur = conn.execute(
+        "INSERT INTO app_events (app_id, event_type, title, content, event_date) VALUES (?,?,?,?,?)",
+        (app_id, data.get("event_type","note"), data.get("title",""),
+         data.get("content",""), data.get("event_date",""))
+    )
+    event_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return event_id
+
+
+def delete_event(event_id: int):
+    conn = get_conn()
+    conn.execute("DELETE FROM app_events WHERE id=?", (event_id,))
     conn.commit()
     conn.close()
 
