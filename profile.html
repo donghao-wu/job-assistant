@@ -4,7 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>我的信息档案</title>
+  <script>(function(){const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();</script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
   <style>
     .section-title { font-size: 1rem; font-weight: 700; color: #1e40af; border-bottom: 2px solid #e0e7ff; padding-bottom: 0.4rem; margin-bottom: 1rem; }
     .card { background: #f8fafc; border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem; }
@@ -12,9 +14,26 @@
     .label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem; }
     .value { font-size: 0.9rem; color: #111827; }
     .tag { display: inline-block; background: #dbeafe; color: #1d4ed8; border-radius: 9999px; padding: 0.2rem 0.75rem; font-size: 0.8rem; margin: 0.2rem; }
+
+    html.dark body { background:#0f172a !important; color:#f1f5f9; }
+    html.dark .bg-gray-50 { background:#0f172a !important; }
+    html.dark .bg-white { background:#1e293b !important; }
+    html.dark .text-gray-800, html.dark .text-gray-700 { color:#f1f5f9 !important; }
+    html.dark .text-gray-500, html.dark .text-gray-600 { color:#94a3b8 !important; }
+    html.dark .text-gray-400 { color:#64748b !important; }
+    html.dark .border-gray-200 { border-color:#334155 !important; }
+    html.dark .section-title { color:#818cf8 !important; border-color:#1e3a5f !important; }
+    html.dark .card { background:#334155 !important; }
+    html.dark .card-edit { background:#1e3a5f !important; border-color:#3b82f6 !important; }
+    html.dark .label { color:#94a3b8 !important; }
+    html.dark .value { color:#f1f5f9 !important; }
+    html.dark .tag { background:#1e3a5f !important; color:#93c5fd !important; }
+    html.dark input, html.dark select, html.dark textarea { background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important; }
+    html.dark input::placeholder, html.dark textarea::placeholder { color:#475569 !important; }
+    html.dark .hover\:bg-gray-50:hover { background:#334155 !important; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen transition-colors duration-200">
 
 <div class="max-w-3xl mx-auto py-12 px-4">
 
@@ -23,6 +42,7 @@
     <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
     <a href="/profile-page" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">我的档案</a>
     <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
   </div>
 
   <!-- 档案选择栏 -->
@@ -938,6 +958,14 @@ function addCert() {
 // 启动
 // ═══════════════════════════════════════════════
 init();
+
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+if (document.documentElement.classList.contains('dark'))
+  document.getElementById('themeBtn').textContent = '☀️';
 </script>
 
 </body>

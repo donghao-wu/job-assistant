@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>简历优化助手</title>
+  <script>(function(){const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();</script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     #resultContent h2 {
@@ -41,17 +43,31 @@
       border-left: 3px solid #60a5fa;
       margin-top: 0.5rem;
     }
+    html.dark body { background:#0f172a !important; color:#f1f5f9; }
+    html.dark .bg-gray-50 { background:#0f172a !important; }
+    html.dark .bg-white { background:#1e293b !important; }
+    html.dark .text-gray-800 { color:#f1f5f9 !important; }
+    html.dark .text-gray-700 { color:#e2e8f0 !important; }
+    html.dark .text-gray-500 { color:#94a3b8 !important; }
+    html.dark .text-gray-400 { color:#64748b !important; }
+    html.dark .border-gray-200 { border-color:#334155 !important; }
+    html.dark textarea, html.dark input { background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important; }
+    html.dark textarea::placeholder { color:#475569 !important; }
+    html.dark #resultContent h2 { color:#818cf8 !important; border-color:#1e3a5f !important; }
+    html.dark #resultContent p { background:#1e293b !important; color:#cbd5e1 !important; border-color:#6366f1 !important; }
+    html.dark #resultContent li { background:#1e293b !important; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen transition-colors duration-200">
 
   <div class="max-w-3xl mx-auto py-12 px-4">
 
     <!-- Nav -->
-    <div class="flex justify-center gap-2 mb-8">
+    <div class="flex justify-center gap-2 mb-8 items-center">
       <a href="/" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">简历优化</a>
       <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
       <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
+      <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
     </div>
 
     <!-- Header -->
@@ -244,6 +260,14 @@
       a.click();
       URL.revokeObjectURL(url);
     }
+
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+      document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+    }
+    if (document.documentElement.classList.contains('dark'))
+      document.getElementById('themeBtn').textContent = '☀️';
   </script>
 
 </body>
