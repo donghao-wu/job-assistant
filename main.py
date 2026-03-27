@@ -38,7 +38,7 @@ app.add_middleware(
 API_KEY = os.getenv("SILICONFLOW_API_KEY")
 TOKEN_METER_PORT = os.getenv("TOKEN_METER_PORT", "7070")
 BASE_URL = f"http://localhost:{TOKEN_METER_PORT}/job-app/v1"
-MODEL = "deepseek-ai/DeepSeek-V3-0324"
+MODEL = "deepseek-ai/DeepSeek-V3.2"
 
 client = OpenAI(
     api_key=API_KEY,
