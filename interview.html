@@ -55,6 +55,9 @@
     <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
     <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
     <a href="/interview" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">面试准备</a>
+    <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
+    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
+    <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
     <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
   </div>
 
@@ -118,16 +121,84 @@
           <span id="questionCount" class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium"></span>
           <div id="categoryFilters" class="flex flex-wrap gap-1"></div>
         </div>
-        <button onclick="togglePractice()" id="practiceBtn"
-          class="text-sm px-4 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
-          🧠 练习模式
-        </button>
+        <div class="flex gap-2">
+          <button onclick="togglePractice()" id="practiceBtn"
+            class="text-sm px-4 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+            🧠 练习模式
+          </button>
+          <button onclick="startMock()" id="mockBtn"
+            class="text-sm px-4 py-1.5 rounded-full border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors">
+            🎭 模拟面试
+          </button>
+        </div>
       </div>
 
       <!-- Question cards -->
       <div id="questionsContainer" class="space-y-3"></div>
 
     </div>
+  </div>
+</div>
+
+<!-- ── Mock Interview Overlay ────────────────────────────── -->
+<div id="mockOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <span class="text-lg font-bold text-gray-800">🎭 模拟面试</span>
+        <span id="mockProgress" class="text-sm text-gray-400"></span>
+      </div>
+      <button onclick="closeMock()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="h-1 bg-gray-100">
+      <div id="mockProgressBar" class="h-1 bg-blue-500 transition-all duration-300" style="width:0%"></div>
+    </div>
+
+    <!-- Main content -->
+    <div id="mockMain" class="p-6 space-y-5">
+
+      <!-- Question -->
+      <div>
+        <span id="mockCategory" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600"></span>
+        <p id="mockQuestion" class="mt-3 text-gray-800 font-medium text-base leading-relaxed"></p>
+      </div>
+
+      <!-- Answer input -->
+      <div>
+        <label class="text-xs text-gray-500 mb-1.5 block">你的回答</label>
+        <textarea id="mockAnswer" rows="5" placeholder="请输入你的回答，尽量详细具体…"
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"></textarea>
+      </div>
+
+      <!-- Feedback -->
+      <div id="mockFeedback" class="hidden bg-gray-50 rounded-2xl p-5 border border-gray-100">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">AI 点评</p>
+        <div id="mockFeedbackContent"></div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex gap-3">
+        <button id="mockSubmitBtn" onclick="submitMockAnswer()"
+          class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">
+          ✅ 提交回答
+        </button>
+        <button id="mockNextBtn" onclick="mockNext()"
+          class="hidden flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">
+          下一题 →
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div id="mockSummary" class="hidden px-6 pb-6">
+      <p class="text-sm font-bold text-gray-700 mb-3 text-center">🏆 本次模拟总结</p>
+      <div id="mockSummaryContent"></div>
+    </div>
+
   </div>
 </div>
 
@@ -400,6 +471,124 @@ async function deleteSession(id, event) {
   event.stopPropagation();
   await fetch(`/interview/sessions/${id}`, { method: 'DELETE' });
   await loadSessions();
+}
+
+// ─── Mock Interview ───────────────────────────────────────
+let mockIndex = 0;
+let mockQuestions = [];
+let mockProfileSummary = '';
+let mockScores = [];
+
+function startMock() {
+  if (!currentQuestions.length) { alert('请先生成面试题'); return; }
+  mockQuestions = [...currentQuestions];
+  mockIndex = 0;
+  mockScores = [];
+  document.getElementById('mockOverlay').classList.remove('hidden');
+  renderMockQuestion();
+}
+
+function closeMock() {
+  document.getElementById('mockOverlay').classList.add('hidden');
+}
+
+function renderMockQuestion() {
+  const q = mockQuestions[mockIndex];
+  const total = mockQuestions.length;
+  const cfg = { '自我介绍':'bg-purple-100 text-purple-700','行为面试':'bg-blue-100 text-blue-700','专业技术':'bg-green-100 text-green-700','情景题':'bg-amber-100 text-amber-700','公司相关':'bg-rose-100 text-rose-700' };
+  const tagColor = cfg[q.category] || 'bg-gray-100 text-gray-600';
+
+  document.getElementById('mockProgress').textContent = `${mockIndex + 1} / ${total}`;
+  document.getElementById('mockProgressBar').style.width = `${((mockIndex + 1) / total) * 100}%`;
+  document.getElementById('mockCategory').className = `text-xs font-medium px-2.5 py-0.5 rounded-full ${tagColor}`;
+  document.getElementById('mockCategory').textContent = q.category;
+  document.getElementById('mockQuestion').textContent = q.question;
+  document.getElementById('mockAnswer').value = '';
+  document.getElementById('mockFeedback').classList.add('hidden');
+  document.getElementById('mockSubmitBtn').classList.remove('hidden');
+  document.getElementById('mockNextBtn').classList.add('hidden');
+  document.getElementById('mockAnswer').focus();
+}
+
+async function submitMockAnswer() {
+  const answer = document.getElementById('mockAnswer').value.trim();
+  if (!answer) { alert('请先输入你的回答'); return; }
+
+  const q = mockQuestions[mockIndex];
+  document.getElementById('mockSubmitBtn').disabled = true;
+  document.getElementById('mockSubmitBtn').textContent = '评估中…';
+
+  try {
+    const res = await fetch('/interview/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q.question, answer, context: mockProfileSummary })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    mockScores.push(data.score || 0);
+    renderFeedback(data);
+  } catch(e) {
+    alert('评估失败：' + e.message);
+  } finally {
+    document.getElementById('mockSubmitBtn').disabled = false;
+    document.getElementById('mockSubmitBtn').textContent = '✅ 提交回答';
+  }
+}
+
+function renderFeedback(d) {
+  const score = d.score || 0;
+  const levelColor = score >= 90 ? 'text-green-600' : score >= 75 ? 'text-blue-600' : score >= 60 ? 'text-amber-600' : 'text-red-500';
+  document.getElementById('mockFeedbackContent').innerHTML = `
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-3xl font-bold ${levelColor}">${score}</span>
+      <div>
+        <span class="text-sm font-semibold ${levelColor}">${d.level || ''}</span>
+        <p class="text-xs text-gray-500">${d.highlight || ''}</p>
+      </div>
+    </div>
+    <p class="text-sm text-gray-700 mb-3">${d.feedback || ''}</p>
+    ${d.better_answer ? `
+    <div class="bg-blue-50 rounded-xl p-3 mb-3">
+      <p class="text-xs font-semibold text-blue-700 mb-1.5">💡 改进方向</p>
+      <ul class="space-y-1">${d.better_answer.map(b => `<li class="text-xs text-blue-700 flex gap-1.5"><span>›</span><span>${escHtml(b)}</span></li>`).join('')}</ul>
+    </div>` : ''}
+    ${d.tips ? `<p class="text-xs text-gray-400 italic">面试技巧：${escHtml(d.tips)}</p>` : ''}
+  `;
+  document.getElementById('mockFeedback').classList.remove('hidden');
+  document.getElementById('mockSubmitBtn').classList.add('hidden');
+  const isLast = mockIndex >= mockQuestions.length - 1;
+  const nextBtn = document.getElementById('mockNextBtn');
+  nextBtn.textContent = isLast ? '📊 查看总结' : '下一题 →';
+  nextBtn.classList.remove('hidden');
+}
+
+function mockNext() {
+  if (mockIndex >= mockQuestions.length - 1) {
+    showMockSummary();
+  } else {
+    mockIndex++;
+    renderMockQuestion();
+  }
+}
+
+function showMockSummary() {
+  const avg = mockScores.length ? Math.round(mockScores.reduce((a,b) => a+b, 0) / mockScores.length) : 0;
+  const color = avg >= 90 ? 'text-green-600' : avg >= 75 ? 'text-blue-600' : avg >= 60 ? 'text-amber-600' : 'text-red-500';
+  document.getElementById('mockSummaryContent').innerHTML = `
+    <div class="text-center py-4">
+      <p class="text-5xl font-bold ${color} mb-2">${avg}</p>
+      <p class="text-gray-500 text-sm mb-4">平均得分（共 ${mockScores.length} 题）</p>
+      <div class="flex justify-center gap-2 flex-wrap mb-4">
+        ${mockScores.map((s,i) => {
+          const c = s>=90?'bg-green-100 text-green-700':s>=75?'bg-blue-100 text-blue-700':s>=60?'bg-amber-100 text-amber-700':'bg-red-100 text-red-500';
+          return `<span class="text-xs px-2 py-1 rounded-full font-medium ${c}">Q${i+1}: ${s}</span>`;
+        }).join('')}
+      </div>
+      <button onclick="closeMock()" class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-colors">完成练习</button>
+    </div>`;
+  document.getElementById('mockSummary').classList.remove('hidden');
+  document.getElementById('mockMain').classList.add('hidden');
 }
 
 // ─── Theme ────────────────────────────────────────────────

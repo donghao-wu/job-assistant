@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Offer 对比</title>
+  <script>(function(){const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <style>
+    html.dark body            { background:#0f172a !important; color:#f1f5f9; }
+    html.dark .bg-gray-50     { background:#0f172a !important; }
+    html.dark .bg-white       { background:#1e293b !important; }
+    html.dark .bg-gray-100    { background:#334155 !important; }
+    html.dark .shadow-sm      { box-shadow:0 1px 3px rgba(0,0,0,.4) !important; }
+    html.dark .text-gray-800  { color:#f1f5f9 !important; }
+    html.dark .text-gray-700  { color:#e2e8f0 !important; }
+    html.dark .text-gray-600  { color:#cbd5e1 !important; }
+    html.dark .text-gray-500  { color:#94a3b8 !important; }
+    html.dark .text-gray-400  { color:#64748b !important; }
+    html.dark .border-gray-200{ border-color:#334155 !important; }
+    html.dark .border-gray-100{ border-color:#1e293b !important; }
+    html.dark input, html.dark select, html.dark textarea {
+      background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important;
+    }
+    html.dark input::placeholder, html.dark textarea::placeholder { color:#475569 !important; }
+    html.dark .bg-blue-50  { background:#1e3a5f !important; }
+    html.dark .bg-green-50 { background:#14532d !important; }
+    html.dark .bg-amber-50 { background:#451a03 !important; }
+
+    .offer-card { transition: box-shadow .15s; }
+    .offer-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+    .field-label { font-size:.7rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.25rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen transition-colors duration-200">
+<div class="max-w-7xl mx-auto py-10 px-4">
+
+  <!-- Nav -->
+  <div class="flex justify-center gap-2 mb-8 items-center flex-wrap">
+    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
+    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
+    <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
+    <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
+    <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
+    <a href="/offer" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">Offer对比</a>
+    <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
+  </div>
+
+  <!-- Header -->
+  <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Offer 对比器</h1>
+      <p class="text-gray-400 text-sm mt-1">并排对比多个 Offer，AI 帮你做最优决策</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="addOffer()" id="addBtn"
+        class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors">
+        + 添加 Offer
+      </button>
+      <button onclick="runAI()" id="aiBtn"
+        class="px-4 py-2 rounded-xl border border-purple-200 text-purple-600 hover:bg-purple-50 text-sm font-medium transition-colors">
+        ✨ AI 分析
+      </button>
+    </div>
+  </div>
+
+  <!-- Offers Grid -->
+  <div id="offerGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8"></div>
+
+  <!-- Empty state -->
+  <div id="emptyState" class="text-center py-20 text-gray-400">
+    <p class="text-5xl mb-4">💼</p>
+    <p class="text-base font-medium">还没有 Offer</p>
+    <p class="text-sm mt-1 mb-5">点击「添加 Offer」填写详情，最多支持 4 个并排对比</p>
+    <button onclick="addOffer()" class="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors">+ 添加第一个 Offer</button>
+  </div>
+
+  <!-- AI Analysis Result -->
+  <div id="aiResult" class="hidden bg-white rounded-2xl shadow-sm p-6 space-y-5">
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-gray-800 text-base">✨ AI 综合分析</h3>
+      <button onclick="document.getElementById('aiResult').classList.add('hidden')" class="text-gray-300 hover:text-gray-500 text-xl leading-none">✕</button>
+    </div>
+    <!-- Winner -->
+    <div id="aiWinner" class="bg-green-50 rounded-2xl p-4 border border-green-100"></div>
+    <!-- Per-offer analysis -->
+    <div id="aiAnalyses" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    <!-- Dimensions -->
+    <div id="aiDimensions" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+    <!-- Advice -->
+    <div id="aiAdvice" class="bg-blue-50 rounded-2xl p-4 border border-blue-100"></div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 id="modalTitle" class="font-semibold text-gray-800">添加 Offer</h2>
+      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="editIdx" value="-1"/>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <p class="field-label">公司名称 *</p>
+          <input id="fCompany" type="text" placeholder="如：字节跳动" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div class="col-span-2">
+          <p class="field-label">职位名称 *</p>
+          <input id="fPosition" type="text" placeholder="如：后端开发工程师" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div>
+          <p class="field-label">税前月薪（K）</p>
+          <input id="fBase" type="number" placeholder="如：25" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div>
+          <p class="field-label">薪资结构</p>
+          <select id="fStructure" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option>12薪</option><option>13薪</option><option>14薪</option><option>15薪</option><option>16薪</option><option>其他</option>
+          </select>
+        </div>
+        <div>
+          <p class="field-label">年终奖（月）</p>
+          <input id="fBonus" type="number" placeholder="如：3" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div>
+          <p class="field-label">期权/股票</p>
+          <input id="fEquity" type="text" placeholder="如：4年20万股" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div>
+          <p class="field-label">城市</p>
+          <input id="fCity" type="text" placeholder="如：北京" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div>
+          <p class="field-label">行业</p>
+          <input id="fIndustry" type="text" placeholder="如：互联网/新能源" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div>
+          <p class="field-label">工作性质</p>
+          <select id="fType" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option>正式全职</option><option>实习转正</option><option>合同工</option><option>其他</option>
+          </select>
+        </div>
+        <div>
+          <p class="field-label">上班时间</p>
+          <input id="fHours" type="text" placeholder="如：大小周/965" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div class="col-span-2">
+          <p class="field-label">福利亮点</p>
+          <input id="fBenefits" type="text" placeholder="如：六险一金、餐补、免费三餐、住房补贴" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+        <div class="col-span-2">
+          <p class="field-label">个人备注</p>
+          <textarea id="fNotes" rows="2" placeholder="其他考量因素…" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="saveOffer()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">保存</button>
+        <button onclick="closeModal()" class="flex-1 border border-gray-200 text-gray-500 font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CARD_COLORS = [
+  { bg:'bg-blue-50 border-blue-200',   icon:'bg-blue-100 text-blue-600',   accent:'text-blue-600' },
+  { bg:'bg-violet-50 border-violet-200', icon:'bg-violet-100 text-violet-600', accent:'text-violet-600' },
+  { bg:'bg-emerald-50 border-emerald-200', icon:'bg-emerald-100 text-emerald-600', accent:'text-emerald-600' },
+  { bg:'bg-rose-50 border-rose-200',   icon:'bg-rose-100 text-rose-600',   accent:'text-rose-600' },
+];
+
+let offers = JSON.parse(localStorage.getItem('offers') || '[]');
+
+function saveLocal() { localStorage.setItem('offers', JSON.stringify(offers)); }
+
+function renderAll() {
+  const grid = document.getElementById('offerGrid');
+  const empty = document.getElementById('emptyState');
+  const addBtn = document.getElementById('addBtn');
+
+  if (!offers.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  addBtn.disabled = offers.length >= 4;
+  addBtn.className = `px-4 py-2 rounded-xl text-sm font-medium transition-colors ${offers.length >= 4 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'}`;
+
+  grid.innerHTML = offers.map((o, i) => {
+    const c = CARD_COLORS[i % CARD_COLORS.length];
+    const totalMonths = parseInt(o.structure) || 12;
+    const annualBase = o.base ? `${(parseFloat(o.base) * totalMonths / 10).toFixed(1)}W` : '—';
+    const totalAnnual = (o.base && o.bonus)
+      ? `${((parseFloat(o.base) * totalMonths + parseFloat(o.bonus) * parseFloat(o.base)) / 10).toFixed(1)}W`
+      : annualBase;
+
+    return `
+      <div class="offer-card rounded-2xl border p-5 space-y-4 ${c.bg}">
+        <!-- Card header -->
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl ${c.icon} flex items-center justify-center text-lg font-bold flex-shrink-0">
+              ${o.company ? o.company[0].toUpperCase() : '?'}
+            </div>
+            <div>
+              <p class="font-bold text-gray-800 text-sm">${escHtml(o.company || '未命名')}</p>
+              <p class="text-xs text-gray-500">${escHtml(o.position || '')}</p>
+            </div>
+          </div>
+          <div class="flex gap-1">
+            <button onclick="editOffer(${i})" class="w-7 h-7 rounded-lg hover:bg-white/60 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors text-xs">✏️</button>
+            <button onclick="removeOffer(${i})" class="w-7 h-7 rounded-lg hover:bg-white/60 flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors text-xs">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Salary -->
+        <div class="bg-white/70 rounded-xl p-3 space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">月薪（税前）</span>
+            <span class="font-bold ${c.accent} text-base">${o.base ? o.base + 'K' : '—'}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">薪资结构</span>
+            <span class="text-xs text-gray-700">${escHtml(o.structure || '—')}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">年终奖</span>
+            <span class="text-xs text-gray-700">${o.bonus ? o.bonus + ' 个月' : '—'}</span>
+          </div>
+          <div class="flex justify-between items-center border-t border-gray-100 pt-1.5 mt-1">
+            <span class="text-xs font-semibold text-gray-600">预估年包</span>
+            <span class="font-bold ${c.accent} text-sm">${totalAnnual}</span>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="space-y-1.5">
+          ${row('📍', o.city)}
+          ${row('🏭', o.industry)}
+          ${row('⏰', o.hours)}
+          ${row('🎁', o.benefits)}
+          ${o.equity ? row('📈', o.equity) : ''}
+          ${o.notes ? `<div class="text-xs text-gray-400 italic pt-1">${escHtml(o.notes)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function row(icon, val) {
+  if (!val) return '';
+  return `<div class="flex gap-2 text-xs text-gray-600"><span class="flex-shrink-0">${icon}</span><span>${escHtml(val)}</span></div>`;
+}
+
+// ── Modal ─────────────────────────────────────────────────
+function addOffer() {
+  if (offers.length >= 4) { alert('最多支持 4 个 Offer 并排对比'); return; }
+  document.getElementById('editIdx').value = -1;
+  document.getElementById('modalTitle').textContent = '添加 Offer';
+  ['fCompany','fPosition','fBase','fBonus','fEquity','fCity','fIndustry','fHours','fBenefits','fNotes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fStructure').value = '13薪';
+  document.getElementById('fType').value = '正式全职';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function editOffer(i) {
+  const o = offers[i];
+  document.getElementById('editIdx').value = i;
+  document.getElementById('modalTitle').textContent = '编辑 Offer';
+  document.getElementById('fCompany').value = o.company || '';
+  document.getElementById('fPosition').value = o.position || '';
+  document.getElementById('fBase').value = o.base || '';
+  document.getElementById('fStructure').value = o.structure || '13薪';
+  document.getElementById('fBonus').value = o.bonus || '';
+  document.getElementById('fEquity').value = o.equity || '';
+  document.getElementById('fCity').value = o.city || '';
+  document.getElementById('fIndustry').value = o.industry || '';
+  document.getElementById('fType').value = o.type || '正式全职';
+  document.getElementById('fHours').value = o.hours || '';
+  document.getElementById('fBenefits').value = o.benefits || '';
+  document.getElementById('fNotes').value = o.notes || '';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+function saveOffer() {
+  const company = document.getElementById('fCompany').value.trim();
+  if (!company) { alert('请填写公司名称'); return; }
+  const obj = {
+    company, position: document.getElementById('fPosition').value.trim(),
+    base: document.getElementById('fBase').value,
+    structure: document.getElementById('fStructure').value,
+    bonus: document.getElementById('fBonus').value,
+    equity: document.getElementById('fEquity').value.trim(),
+    city: document.getElementById('fCity').value.trim(),
+    industry: document.getElementById('fIndustry').value.trim(),
+    type: document.getElementById('fType').value,
+    hours: document.getElementById('fHours').value.trim(),
+    benefits: document.getElementById('fBenefits').value.trim(),
+    notes: document.getElementById('fNotes').value.trim(),
+  };
+  const idx = parseInt(document.getElementById('editIdx').value);
+  if (idx >= 0) offers[idx] = obj; else offers.push(obj);
+  saveLocal();
+  closeModal();
+  renderAll();
+}
+
+function removeOffer(i) {
+  if (!confirm(`确认删除「${offers[i].company}」的 Offer？`)) return;
+  offers.splice(i, 1);
+  saveLocal();
+  document.getElementById('aiResult').classList.add('hidden');
+  renderAll();
+}
+
+// ── AI Analysis ───────────────────────────────────────────
+async function runAI() {
+  if (offers.length < 2) { alert('至少需要 2 个 Offer 才能进行对比分析'); return; }
+  const btn = document.getElementById('aiBtn');
+  btn.disabled = true;
+  btn.textContent = '分析中…';
+  document.getElementById('aiResult').classList.add('hidden');
+
+  try {
+    const res = await fetch('/offer-analysis', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ offers })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    renderAI(data);
+  } catch(e) {
+    alert('分析失败：' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ AI 分析';
+  }
+}
+
+function renderAI(d) {
+  // Winner
+  document.getElementById('aiWinner').innerHTML = `
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🏆</span>
+      <div>
+        <p class="text-sm font-bold text-green-700">推荐：${escHtml(d.winner || '')}</p>
+        <p class="text-xs text-green-600 mt-0.5">${escHtml(d.winner_reason || '')}</p>
+      </div>
+    </div>`;
+
+  // Per-offer analyses
+  const colors = ['border-blue-200 bg-blue-50','border-violet-200 bg-violet-50','border-emerald-200 bg-emerald-50','border-rose-200 bg-rose-50'];
+  document.getElementById('aiAnalyses').innerHTML = (d.analyses || []).map((a, i) => `
+    <div class="rounded-xl p-4 border ${colors[i] || colors[0]}">
+      <p class="font-semibold text-gray-800 text-sm mb-2">${escHtml(a.company)}</p>
+      <div class="space-y-1 mb-2">
+        ${(a.pros||[]).map(p => `<p class="text-xs text-green-700 flex gap-1"><span>✓</span><span>${escHtml(p)}</span></p>`).join('')}
+        ${(a.cons||[]).map(c => `<p class="text-xs text-red-500 flex gap-1"><span>✗</span><span>${escHtml(c)}</span></p>`).join('')}
+      </div>
+      <p class="text-xs text-gray-500">适合：${escHtml(a.best_for || '')} · 风险：${escHtml(a.risk || '')}</p>
+    </div>`).join('');
+
+  // Dimensions
+  const dims = d.dimensions || {};
+  const dimMap = [['salary','💰 薪资'],['growth','📈 发展'],['stability','🏛️ 稳定性'],['lifestyle','☀️ 生活质量']];
+  document.getElementById('aiDimensions').innerHTML = dimMap.map(([k, label]) => `
+    <div class="bg-white rounded-xl p-3 border border-gray-100 text-center">
+      <p class="text-xs font-semibold text-gray-600 mb-1">${label}</p>
+      <p class="text-xs text-gray-500 leading-relaxed">${escHtml(dims[k] || '—')}</p>
+    </div>`).join('');
+
+  // Advice
+  document.getElementById('aiAdvice').innerHTML = `
+    <p class="text-xs font-semibold text-blue-700 mb-1">💡 综合建议</p>
+    <p class="text-sm text-blue-700">${escHtml(d.advice || '')}</p>`;
+
+  document.getElementById('aiResult').classList.remove('hidden');
+  document.getElementById('aiResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+if (document.documentElement.classList.contains('dark'))
+  document.getElementById('themeBtn').textContent = '☀️';
+
+renderAll();
+</script>
+</body>
+</html>

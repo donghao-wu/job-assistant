@@ -646,6 +646,184 @@ async def api_delete_interview_session(session_id: int):
     return {"status": "ok"}
 
 
+# ─── 岗位匹配度分析 ──────────────────────────────────────
+
+@app.post("/match-jd")
+async def api_match_jd(payload: dict):
+    profile_id = payload.get("profile_id")
+    jd = (payload.get("jd") or "").strip()
+    if not profile_id or not jd:
+        return JSONResponse(status_code=400, content={"error": "profile_id 和 jd 均为必填"})
+
+    profile = get_profile(profile_id)
+    if not profile:
+        return JSONResponse(status_code=404, content={"error": "档案不存在"})
+
+    profile_summary = build_profile_summary(profile)
+    jd_trimmed = jd[:2500]
+
+    prompt = f"""你是一位资深招聘顾问，请分析候选人与目标岗位的匹配程度。
+
+严格按以下JSON格式输出，不要有任何其他文字：
+
+{{
+  "score": 82,
+  "verdict": "较强匹配",
+  "summary": "一句话总结匹配情况（40字以内）",
+  "strengths": [
+    {{"item": "具体优势点1", "detail": "结合简历的具体说明"}},
+    {{"item": "具体优势点2", "detail": "结合简历的具体说明"}},
+    {{"item": "具体优势点3", "detail": "结合简历的具体说明"}}
+  ],
+  "gaps": [
+    {{"item": "具体差距1", "detail": "说明缺少什么、影响几分", "tip": "弥补建议"}},
+    {{"item": "具体差距2", "detail": "说明缺少什么", "tip": "弥补建议"}}
+  ],
+  "key_skills": [
+    {{"skill": "技能名", "match": true}},
+    {{"skill": "技能名", "match": false}}
+  ],
+  "advice": "综合建议，如何提升竞争力（60字以内）"
+}}
+
+评分规则：
+- score 为 0-100 整数，verdict 对应：90-100=完美匹配, 75-89=较强匹配, 60-74=基本匹配, 45-59=有一定差距, 0-44=差距较大
+- strengths 列出 3-5 条，必须引用简历中真实经历
+- gaps 列出 2-4 条真实差距
+- key_skills 从JD中提取5-8个关键技能，判断候选人是否具备
+
+【候选人背景】
+{profile_summary}
+
+【目标岗位JD】
+{jd_trimmed}"""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+    )
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return JSONResponse(status_code=500, content={"error": f"AI返回格式错误: {e}", "raw": raw[:400]})
+    return result
+
+
+# ─── 模拟面试评估 ─────────────────────────────────────────
+
+@app.post("/interview/evaluate")
+async def api_evaluate_answer(payload: dict):
+    question = (payload.get("question") or "").strip()
+    answer = (payload.get("answer") or "").strip()
+    context = (payload.get("context") or "").strip()   # 简历摘要
+
+    if not question or not answer:
+        return JSONResponse(status_code=400, content={"error": "question 和 answer 均为必填"})
+
+    prompt = f"""你是一位严格但友善的面试官，对候选人的回答进行点评。
+
+请按以下JSON格式输出，不要有任何其他文字：
+
+{{
+  "score": 78,
+  "level": "良好",
+  "highlight": "回答中最亮眼的一点（20字以内）",
+  "feedback": "具体点评，指出优点和不足（80字以内）",
+  "better_answer": "改进后的示范回答要点（3条bullet，每条20字以内）",
+  "tips": "针对这道题的面试技巧（30字以内）"
+}}
+
+评分规则：90-100=优秀, 75-89=良好, 60-74=合格, 0-59=需改进
+
+{'【候选人背景】' + context if context else ''}
+
+【面试题目】
+{question}
+
+【候选人回答】
+{answer}"""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+    )
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return JSONResponse(status_code=500, content={"error": f"AI返回格式错误: {e}", "raw": raw[:400]})
+    return result
+
+
+# ─── Offer 对比分析 ───────────────────────────────────────
+
+@app.post("/offer-analysis")
+async def api_offer_analysis(payload: dict):
+    offers = payload.get("offers", [])
+    if len(offers) < 2:
+        return JSONResponse(status_code=400, content={"error": "至少需要2个Offer进行对比"})
+
+    offers_text = json.dumps(offers, ensure_ascii=False, indent=2)
+
+    prompt = f"""你是一位职业发展顾问，帮助候选人分析和比较多个工作Offer。
+
+请按以下JSON格式输出，不要有任何其他文字：
+
+{{
+  "winner": "推荐选择的公司名",
+  "winner_reason": "推荐理由（50字以内）",
+  "analyses": [
+    {{
+      "company": "公司名",
+      "pros": ["优点1", "优点2", "优点3"],
+      "cons": ["缺点1", "缺点2"],
+      "best_for": "最适合什么类型的人（20字以内）",
+      "risk": "主要风险点（20字以内）"
+    }}
+  ],
+  "dimensions": {{
+    "salary": "薪资维度点评（30字以内）",
+    "growth": "发展前景维度点评（30字以内）",
+    "stability": "稳定性维度点评（30字以内）",
+    "lifestyle": "生活质量维度点评（30字以内）"
+  }},
+  "advice": "综合建议（80字以内）"
+}}
+
+【Offer列表】
+{offers_text}"""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+    )
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return JSONResponse(status_code=500, content={"error": f"AI返回格式错误: {e}", "raw": raw[:400]})
+    return result
+
+
 # ─── 页面路由 ────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -669,6 +847,24 @@ async def tracker_page():
 @app.get("/interview", response_class=HTMLResponse)
 async def interview_page():
     with open("interview.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/nav", response_class=HTMLResponse)
+async def nav_page():
+    with open("nav.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/match", response_class=HTMLResponse)
+async def match_page():
+    with open("match.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/offer", response_class=HTMLResponse)
+async def offer_page():
+    with open("offer.html", "r", encoding="utf-8") as f:
         return f.read()
 
 

@@ -58,6 +58,9 @@
     <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
     <a href="/tracker" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">投递追踪</a>
     <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
+    <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
+    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
+    <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
     <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
   </div>
 
@@ -129,6 +132,7 @@
     <div class="flex gap-2">
       <button id="btnKanban" onclick="setView('kanban')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white">看板</button>
       <button id="btnTable" onclick="setView('table')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-500 border border-gray-200">表格</button>
+      <button id="btnCalendar" onclick="setView('calendar')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-500 border border-gray-200">📅 日历</button>
     </div>
     <div class="flex gap-2 items-center">
       <input id="filterInput" type="text" placeholder="搜索公司 / 职位..."
@@ -164,6 +168,42 @@
         <tbody id="tableBody"></tbody>
       </table>
       <div id="tableEmpty" class="hidden text-center py-16 text-gray-300 text-sm">暂无投递记录</div>
+    </div>
+  </div>
+
+  <!-- Calendar View -->
+  <div id="calendarView" class="hidden">
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+      <!-- Calendar header -->
+      <div class="flex items-center justify-between mb-5">
+        <button onclick="calPrev()" class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors text-sm">‹</button>
+        <h3 id="calTitle" class="font-semibold text-gray-800 text-base"></h3>
+        <button onclick="calNext()" class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors text-sm">›</button>
+      </div>
+      <!-- Day labels -->
+      <div class="grid grid-cols-7 mb-2">
+        <div class="text-center text-xs text-gray-400 py-1">日</div>
+        <div class="text-center text-xs text-gray-400 py-1">一</div>
+        <div class="text-center text-xs text-gray-400 py-1">二</div>
+        <div class="text-center text-xs text-gray-400 py-1">三</div>
+        <div class="text-center text-xs text-gray-400 py-1">四</div>
+        <div class="text-center text-xs text-gray-400 py-1">五</div>
+        <div class="text-center text-xs text-gray-400 py-1">六</div>
+      </div>
+      <!-- Calendar grid -->
+      <div id="calGrid" class="grid grid-cols-7 gap-1"></div>
+      <!-- Legend -->
+      <div class="flex gap-4 mt-4 text-xs text-gray-500 flex-wrap">
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block"></span>已投递</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>面试中</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span>Offer</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block"></span>待投递</span>
+      </div>
+    </div>
+    <!-- Selected day detail -->
+    <div id="calDayDetail" class="hidden mt-4 bg-white rounded-2xl shadow-sm p-5">
+      <h4 id="calDayTitle" class="font-semibold text-gray-700 text-sm mb-3"></h4>
+      <div id="calDayList" class="space-y-2"></div>
     </div>
   </div>
 
@@ -574,9 +614,89 @@ function setView(v) {
   currentView = v;
   document.getElementById('kanbanView').classList.toggle('hidden', v !== 'kanban');
   document.getElementById('tableView').classList.toggle('hidden', v !== 'table');
-  document.getElementById('btnKanban').className = `view-btn px-4 py-2 rounded-lg text-sm font-medium ${v==='kanban' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`;
-  document.getElementById('btnTable').className = `view-btn px-4 py-2 rounded-lg text-sm font-medium ${v==='table' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`;
-  renderAll();
+  document.getElementById('calendarView').classList.toggle('hidden', v !== 'calendar');
+  const btnStyle = (active) => `view-btn px-4 py-2 rounded-lg text-sm font-medium ${active ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`;
+  document.getElementById('btnKanban').className = btnStyle(v==='kanban');
+  document.getElementById('btnTable').className = btnStyle(v==='table');
+  document.getElementById('btnCalendar').className = btnStyle(v==='calendar');
+  if (v === 'calendar') renderCalendar();
+  else renderAll();
+}
+
+// ─── Calendar ─────────────────────────────────────────────
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-based
+
+const STATUS_COLOR = {
+  '待投递':  'bg-gray-300',
+  '已投递':  'bg-blue-400',
+  '简历通过':'bg-sky-400',
+  '面试中':  'bg-amber-400',
+  'Offer':   'bg-green-400',
+  '已拒绝':  'bg-red-300',
+  '已放弃':  'bg-gray-200',
+};
+
+function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+
+function renderCalendar() {
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  document.getElementById('calTitle').textContent = `${calYear} 年 ${months[calMonth]}`;
+
+  // Build date → apps map
+  const dateMap = {};
+  (apps || []).forEach(a => {
+    const d = (a.applied_date || '').slice(0, 10);
+    if (d) { dateMap[d] = dateMap[d] || []; dateMap[d].push(a); }
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  let html = '';
+  // Leading empty cells
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayApps = dateMap[dateStr] || [];
+    const isToday = dateStr === today;
+    const dots = dayApps.slice(0, 3).map(a => {
+      const c = STATUS_COLOR[a.status] || 'bg-gray-300';
+      return `<span class="w-1.5 h-1.5 rounded-full ${c} inline-block"></span>`;
+    }).join('');
+
+    html += `
+      <div onclick="selectCalDay('${dateStr}')"
+        class="min-h-[52px] rounded-xl p-1.5 cursor-pointer hover:bg-gray-50 transition-colors border ${isToday ? 'border-blue-400 bg-blue-50' : 'border-transparent'} ${dayApps.length ? 'hover:shadow-sm' : ''}">
+        <p class="text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-600'} text-center mb-1">${d}</p>
+        <div class="flex justify-center gap-0.5 flex-wrap">${dots}</div>
+        ${dayApps.length > 3 ? `<p class="text-center text-gray-400" style="font-size:9px">+${dayApps.length-3}</p>` : ''}
+      </div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+  document.getElementById('calDayDetail').classList.add('hidden');
+}
+
+function selectCalDay(dateStr) {
+  const dayApps = (apps || []).filter(a => (a.applied_date || '').slice(0,10) === dateStr);
+  const detail = document.getElementById('calDayDetail');
+  const [y, m, d] = dateStr.split('-');
+  document.getElementById('calDayTitle').textContent = `${y} 年 ${parseInt(m)} 月 ${parseInt(d)} 日（${dayApps.length} 条投递）`;
+  if (!dayApps.length) { detail.classList.add('hidden'); return; }
+  document.getElementById('calDayList').innerHTML = dayApps.map(a => `
+    <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer" onclick="openDetail(${a.id})">
+      <span class="w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLOR[a.status] || 'bg-gray-300'}"></span>
+      <div class="flex-1 min-w-0">
+        <span class="text-sm font-medium text-gray-800">${escHtml(a.company)}</span>
+        <span class="text-xs text-gray-400 ml-1.5">${escHtml(a.position)}</span>
+      </div>
+      <span class="text-xs text-gray-400 flex-shrink-0">${a.status}</span>
+    </div>`).join('');
+  detail.classList.remove('hidden');
 }
 
 function renderKanban() {

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>岗位匹配分析</title>
+  <script>(function(){const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <style>
+    html.dark body           { background:#0f172a !important; color:#f1f5f9; }
+    html.dark .bg-gray-50    { background:#0f172a !important; }
+    html.dark .bg-white      { background:#1e293b !important; }
+    html.dark .shadow-sm     { box-shadow:0 1px 3px rgba(0,0,0,.4) !important; }
+    html.dark .text-gray-800 { color:#f1f5f9 !important; }
+    html.dark .text-gray-700 { color:#e2e8f0 !important; }
+    html.dark .text-gray-600 { color:#cbd5e1 !important; }
+    html.dark .text-gray-500 { color:#94a3b8 !important; }
+    html.dark .text-gray-400 { color:#64748b !important; }
+    html.dark .border-gray-200{ border-color:#334155 !important; }
+    html.dark .border-gray-100{ border-color:#1e293b !important; }
+    html.dark select, html.dark textarea {
+      background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important;
+    }
+    html.dark select option  { background:#1e293b; }
+
+    .score-ring { transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+    .skill-pill { font-size:.72rem; padding:.2rem .55rem; border-radius:9999px; font-weight:500; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen transition-colors duration-200">
+<div class="max-w-6xl mx-auto py-10 px-4">
+
+  <!-- Nav -->
+  <div class="flex justify-center gap-2 mb-8 items-center flex-wrap">
+    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
+    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
+    <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
+    <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
+    <a href="/match" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">岗位匹配</a>
+    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
+    <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
+  </div>
+
+  <div class="flex gap-6 items-start">
+
+    <!-- LEFT: Input panel -->
+    <div class="w-72 flex-shrink-0 space-y-4 sticky top-6">
+      <div class="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+        <h2 class="font-bold text-gray-800 text-base">🎯 岗位匹配分析</h2>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">选择档案</label>
+          <select id="profileSelector" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700">
+            <option value="">— 加载中 —</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">目标岗位 JD</label>
+          <textarea id="jdInput" rows="10" placeholder="粘贴目标岗位的职位描述..."
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 resize-none"></textarea>
+        </div>
+        <button onclick="analyze()" id="analyzeBtn"
+          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">
+          🔍 开始匹配分析
+        </button>
+        <div id="loadingBar" class="hidden text-center py-2">
+          <div class="inline-block w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+          <span class="text-sm text-gray-500">AI 分析中…</span>
+        </div>
+        <p id="errMsg" class="hidden text-xs text-red-500 text-center"></p>
+      </div>
+    </div>
+
+    <!-- RIGHT: Result panel -->
+    <div class="flex-1 min-w-0">
+
+      <!-- Empty state -->
+      <div id="emptyState" class="text-center py-24 text-gray-400">
+        <p class="text-5xl mb-4">🎯</p>
+        <p class="text-base font-medium">选择档案并粘贴 JD</p>
+        <p class="text-sm mt-1">AI 将深度分析你与岗位的匹配程度</p>
+      </div>
+
+      <!-- Result -->
+      <div id="resultPanel" class="hidden space-y-5">
+
+        <!-- Score card -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-6">
+          <div class="relative flex-shrink-0">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="46" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+              <circle id="scoreCircle" cx="55" cy="55" r="46" fill="none"
+                stroke="#3b82f6" stroke-width="10" stroke-linecap="round"
+                stroke-dasharray="289" stroke-dashoffset="289"
+                transform="rotate(-90 55 55)" class="score-ring"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="scoreNum" class="text-3xl font-bold text-gray-800">0</span>
+              <span class="text-xs text-gray-400">/ 100</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <div id="verdictBadge" class="inline-block text-sm font-semibold px-3 py-1 rounded-full mb-2"></div>
+            <p id="summaryText" class="text-gray-700 text-sm leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- Key skills -->
+        <div class="bg-white rounded-2xl shadow-sm p-5">
+          <h3 class="font-semibold text-gray-700 text-sm mb-3">🔑 关键技能匹配</h3>
+          <div id="skillsContainer" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Strengths -->
+        <div class="bg-white rounded-2xl shadow-sm p-5">
+          <h3 class="font-semibold text-gray-700 text-sm mb-3">✅ 匹配优势</h3>
+          <div id="strengthsList" class="space-y-3"></div>
+        </div>
+
+        <!-- Gaps -->
+        <div class="bg-white rounded-2xl shadow-sm p-5">
+          <h3 class="font-semibold text-gray-700 text-sm mb-3">⚠️ 差距与建议</h3>
+          <div id="gapsList" class="space-y-3"></div>
+        </div>
+
+        <!-- Advice -->
+        <div id="adviceCard" class="bg-blue-50 rounded-2xl p-5 border border-blue-100">
+          <h3 class="font-semibold text-blue-700 text-sm mb-2">💡 综合建议</h3>
+          <p id="adviceText" class="text-blue-700 text-sm leading-relaxed"></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Load profiles ──────────────────────────────────────────
+async function loadProfiles() {
+  const res = await fetch('/profiles');
+  const list = await res.json();
+  const sel = document.getElementById('profileSelector');
+  sel.innerHTML = list.length
+    ? list.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+    : '<option value="">（暂无档案）</option>';
+}
+loadProfiles();
+
+// ── Analyze ────────────────────────────────────────────────
+async function analyze() {
+  const profileId = document.getElementById('profileSelector').value;
+  const jd = document.getElementById('jdInput').value.trim();
+  const err = document.getElementById('errMsg');
+  err.classList.add('hidden');
+
+  if (!profileId) { showErr('请先选择档案'); return; }
+  if (!jd) { showErr('请粘贴目标岗位 JD'); return; }
+
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('loadingBar').classList.remove('hidden');
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('resultPanel').classList.add('hidden');
+
+  try {
+    const res = await fetch('/match-jd', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ profile_id: parseInt(profileId), jd })
+    });
+    const data = await res.json();
+    if (data.error) { showErr(data.error); return; }
+    renderResult(data);
+  } catch(e) {
+    showErr('网络错误：' + e.message);
+  } finally {
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('loadingBar').classList.add('hidden');
+  }
+}
+
+function showErr(msg) {
+  const e = document.getElementById('errMsg');
+  e.textContent = msg;
+  e.classList.remove('hidden');
+  document.getElementById('loadingBar').classList.add('hidden');
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+// ── Render ─────────────────────────────────────────────────
+function renderResult(d) {
+  // Score ring animation
+  const score = Math.max(0, Math.min(100, d.score || 0));
+  const circumference = 289;
+  const offset = circumference - (score / 100) * circumference;
+  const circle = document.getElementById('scoreCircle');
+  setTimeout(() => { circle.style.strokeDashoffset = offset; }, 50);
+
+  // Score color
+  const color = score >= 90 ? '#22c55e' : score >= 75 ? '#3b82f6' : score >= 60 ? '#f59e0b' : score >= 45 ? '#f97316' : '#ef4444';
+  circle.setAttribute('stroke', color);
+  document.getElementById('scoreNum').textContent = score;
+
+  // Verdict badge
+  const badge = document.getElementById('verdictBadge');
+  const badgeColors = {
+    '完美匹配':'bg-green-100 text-green-700',
+    '较强匹配':'bg-blue-100 text-blue-700',
+    '基本匹配':'bg-yellow-100 text-yellow-700',
+    '有一定差距':'bg-orange-100 text-orange-700',
+    '差距较大':'bg-red-100 text-red-700',
+  };
+  badge.textContent = d.verdict || '分析完成';
+  badge.className = 'inline-block text-sm font-semibold px-3 py-1 rounded-full mb-2 ' + (badgeColors[d.verdict] || 'bg-gray-100 text-gray-600');
+
+  document.getElementById('summaryText').textContent = d.summary || '';
+
+  // Key skills
+  const sc = document.getElementById('skillsContainer');
+  sc.innerHTML = (d.key_skills || []).map(s =>
+    `<span class="skill-pill ${s.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}">${s.match ? '✓' : '✗'} ${s.skill}</span>`
+  ).join('');
+
+  // Strengths
+  document.getElementById('strengthsList').innerHTML = (d.strengths || []).map(s => `
+    <div class="flex gap-3">
+      <div class="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">✓</div>
+      <div>
+        <p class="text-sm font-medium text-gray-800">${s.item}</p>
+        <p class="text-xs text-gray-500 mt-0.5">${s.detail}</p>
+      </div>
+    </div>
+  `).join('');
+
+  // Gaps
+  document.getElementById('gapsList').innerHTML = (d.gaps || []).map(g => `
+    <div class="flex gap-3">
+      <div class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">!</div>
+      <div>
+        <p class="text-sm font-medium text-gray-800">${g.item}</p>
+        <p class="text-xs text-gray-500 mt-0.5">${g.detail}</p>
+        ${g.tip ? `<p class="text-xs text-blue-500 mt-1">💡 ${g.tip}</p>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // Advice
+  document.getElementById('adviceText').textContent = d.advice || '';
+
+  document.getElementById('resultPanel').classList.remove('hidden');
+}
+
+// ── Theme ──────────────────────────────────────────────────
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+if (document.documentElement.classList.contains('dark'))
+  document.getElementById('themeBtn').textContent = '☀️';
+</script>
+</body>
+</html>

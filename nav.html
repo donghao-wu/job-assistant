@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>求职导航</title>
+  <script>
+    (function(){const t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <style>
+    html.dark body            { background:#0f172a !important; color:#f1f5f9; }
+    html.dark .bg-gray-50     { background:#0f172a !important; }
+    html.dark .bg-white       { background:#1e293b !important; }
+    html.dark .bg-gray-100    { background:#334155 !important; }
+    html.dark .shadow-sm      { box-shadow:0 1px 3px rgba(0,0,0,.4) !important; }
+    html.dark .text-gray-800  { color:#f1f5f9 !important; }
+    html.dark .text-gray-700  { color:#e2e8f0 !important; }
+    html.dark .text-gray-600  { color:#cbd5e1 !important; }
+    html.dark .text-gray-500  { color:#94a3b8 !important; }
+    html.dark .text-gray-400  { color:#64748b !important; }
+    html.dark .border-gray-200{ border-color:#334155 !important; }
+    html.dark .border-gray-100{ border-color:#1e293b !important; }
+    html.dark input           { background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important; }
+    html.dark input::placeholder { color:#475569 !important; }
+    html.dark .hover\:bg-gray-50:hover { background:#334155 !important; }
+    html.dark .tab-btn        { background:#1e293b !important; color:#94a3b8 !important; border-color:#334155 !important; }
+    html.dark .tab-btn.active { background:#3b82f6 !important; color:#fff !important; border-color:#3b82f6 !important; }
+
+    .tab-btn { transition: all .15s; cursor: pointer; }
+    .tab-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .company-card { transition: transform .15s, box-shadow .15s; }
+    .company-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+    html.dark .company-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.45) !important; }
+    .link-btn { transition: all .12s; font-size:.73rem; font-weight:500; padding:.22rem .6rem; border-radius:9999px; display:inline-block; }
+    .section-header { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#94a3b8; margin:1.75rem 0 .75rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen transition-colors duration-200">
+
+<div class="max-w-7xl mx-auto py-10 px-4">
+
+  <!-- Nav -->
+  <div class="flex justify-center gap-2 mb-8 items-center flex-wrap">
+    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
+    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
+    <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
+    <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
+    <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
+    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
+    <a href="/nav" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">求职导航</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
+  </div>
+
+  <!-- Header -->
+  <div class="mb-6 text-center">
+    <h1 class="text-2xl font-bold text-gray-800">求职导航</h1>
+    <p class="text-gray-400 text-sm mt-1">汇聚求职平台 · 互联网大厂 · 各行业头部企业校招社招直达入口</p>
+  </div>
+
+  <!-- Search + Filter -->
+  <div class="flex flex-col gap-3 mb-6">
+    <input id="searchInput" oninput="renderCards()" type="text" placeholder="🔍  搜索公司或平台名称…"
+      class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+    <div class="flex gap-2 flex-wrap">
+      <button class="tab-btn active px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'all')">🌐 全部</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'platform')">🔍 求职平台</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'internet')">💻 互联网大厂</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'ai')">🤖 AI / 大模型</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'game')">🎮 游戏公司</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'chip')">🔬 芯片/半导体</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'auto')">🚗 新能源汽车</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'hardware')">📱 硬件/手机</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'finance')">💰 金融/银行</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'consulting')">📊 咨询/四大</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'foreign')">🌏 外企科技</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'state')">🏛️ 央企/国企</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'aerospace')">🚀 航空航天</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'medical')">💊 医疗/生命科学</button>
+      <button class="tab-btn px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs" onclick="setTab(this,'fmcg')">🛒 快消/零售</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div id="statsBar" class="text-xs text-gray-400 mb-4"></div>
+
+  <!-- Cards Grid -->
+  <div id="cardGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+  <p id="emptyTip" class="hidden text-center text-gray-400 text-sm mt-16 py-12">没有找到匹配的结果 😕</p>
+</div>
+
+<script>
+const CAT_META = {
+  platform:   { label:'求职平台',    color:'bg-blue-100 text-blue-600' },
+  internet:   { label:'互联网',      color:'bg-violet-100 text-violet-600' },
+  ai:         { label:'AI/大模型',   color:'bg-fuchsia-100 text-fuchsia-600' },
+  game:       { label:'游戏',        color:'bg-rose-100 text-rose-600' },
+  chip:       { label:'芯片/半导体', color:'bg-cyan-100 text-cyan-700' },
+  auto:       { label:'新能源汽车',  color:'bg-lime-100 text-lime-700' },
+  hardware:   { label:'硬件/手机',   color:'bg-amber-100 text-amber-700' },
+  finance:    { label:'金融',        color:'bg-yellow-100 text-yellow-700' },
+  consulting: { label:'咨询',        color:'bg-emerald-100 text-emerald-700' },
+  foreign:    { label:'外企科技',    color:'bg-sky-100 text-sky-600' },
+  state:      { label:'央企/国企',   color:'bg-red-100 text-red-600' },
+  aerospace:  { label:'航空航天',    color:'bg-indigo-100 text-indigo-600' },
+  medical:    { label:'医疗/生命科学', color:'bg-teal-100 text-teal-700' },
+  fmcg:       { label:'快消/零售',   color:'bg-orange-100 text-orange-600' },
+};
+
+const companies = [
+  // ══ 求职平台 ══════════════════════════════════════════════════
+  { cat:'platform', icon:'💼', name:'BOSS直聘',    desc:'与招聘方直接沟通，互联网求职首选',   border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'官网', url:'https://www.zhipin.com/'}] },
+  { cat:'platform', icon:'🌟', name:'前程无忧',    desc:'1999年成立，老牌综合招聘平台',       border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600', links:[{label:'官网', url:'https://www.51job.com/'}] },
+  { cat:'platform', icon:'🔵', name:'智联招聘',    desc:'大数据+AI，一站式人才服务',          border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'官网', url:'https://www.zhaopin.com/'}] },
+  { cat:'platform', icon:'🎯', name:'猎聘',        desc:'中高端职位，港交所上市平台',          border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'官网', url:'https://www.liepin.com/'}] },
+  { cat:'platform', icon:'🟢', name:'拉勾招聘',    desc:'专注互联网/IT技术岗位',              border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'官网', url:'https://www.lagou.com/'}] },
+  { cat:'platform', icon:'📚', name:'牛客网',      desc:'技术刷题+校招信息+面经，必备平台',   border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'官网', url:'https://www.nowcoder.com/'}] },
+  { cat:'platform', icon:'🎓', name:'应届生求职网', desc:'大学生校招首选，深耕校园招聘多年',   border:'border-purple-200', iconBg:'bg-purple-100 text-purple-600',links:[{label:'官网', url:'https://www.yingjiesheng.com/'}] },
+  { cat:'platform', icon:'🏛️', name:'国聘',        desc:'国资央企官方校招聚合平台',           border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招', url:'https://xiaoyuan.iguopin.com/'},{label:'社招', url:'https://www.iguopin.com/'}] },
+  { cat:'platform', icon:'🔖', name:'实习僧',      desc:'全国最大大学生实习信息平台',          border:'border-indigo-200', iconBg:'bg-indigo-100 text-indigo-600',links:[{label:'官网', url:'https://www.shixiseng.com/'}] },
+  { cat:'platform', icon:'🌐', name:'LinkedIn',    desc:'职场社交+外企社招首选渠道',          border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'官网', url:'https://www.linkedin.com/jobs/'}] },
+  { cat:'platform', icon:'📋', name:'Gank Interview', desc:'校招信息汇总，进度追踪神器',      border:'border-teal-200',   iconBg:'bg-teal-100 text-teal-700',    links:[{label:'官网', url:'https://gankinterview.cn/campus'}] },
+  { cat:'platform', icon:'🏦', name:'银行招聘网',  desc:'银行/金融机构专属招聘信息聚合',      border:'border-amber-200',  iconBg:'bg-amber-100 text-amber-700',  links:[{label:'官网', url:'http://www.yinhangzhaopin.com/'}] },
+
+  // ══ 互联网大厂 ════════════════════════════════════════════════
+  { cat:'internet', icon:'🐧', name:'腾讯',      desc:'微信、游戏、云计算全平台布局',       border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招', url:'https://join.qq.com/',type:'c'},{label:'社招', url:'https://careers.tencent.com/',type:'s'}] },
+  { cat:'internet', icon:'🟠', name:'阿里巴巴',  desc:'电商、云计算、AI全赛道领军企业',     border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招', url:'https://campus.alibaba.com/',type:'c'},{label:'社招', url:'https://talent.alibaba.com/',type:'s'}] },
+  { cat:'internet', icon:'⚡', name:'字节跳动',  desc:'TikTok、抖音、今日头条，全球扩张',  border:'border-gray-300',   iconBg:'bg-gray-200 text-gray-700',    links:[{label:'校招', url:'https://jobs.bytedance.com/campus/',type:'c'},{label:'社招', url:'https://job.bytedance.com/',type:'s'}] },
+  { cat:'internet', icon:'🌸', name:'华为',      desc:'5G、芯片、云计算、终端全覆盖',      border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招', url:'https://career.huawei.com/reccampus/',type:'c'},{label:'社招', url:'https://career.huawei.com/recsite/',type:'s'}] },
+  { cat:'internet', icon:'🦅', name:'美团',      desc:'外卖、本地生活、无人配送',           border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招', url:'https://campus.meituan.com/',type:'c'},{label:'社招', url:'https://zhaopin.meituan.com/',type:'s'}] },
+  { cat:'internet', icon:'🔵', name:'百度',      desc:'搜索引擎、AI、自动驾驶',            border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招', url:'https://talent.baidu.com/external/baidu/campus.html',type:'c'},{label:'社招', url:'https://talent.baidu.com/',type:'s'}] },
+  { cat:'internet', icon:'🛒', name:'京东',      desc:'电商、物流、科技零售',               border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招', url:'https://campus.jd.com/',type:'c'},{label:'社招', url:'https://zhaopin.jd.com/',type:'s'}] },
+  { cat:'internet', icon:'🎵', name:'网易',      desc:'游戏、音乐、教育、邮箱全线业务',     border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招', url:'https://campus.163.com/',type:'c'},{label:'社招', url:'https://hr.163.com/',type:'s'}] },
+  { cat:'internet', icon:'🎬', name:'快手',      desc:'短视频、直播、电商三驾马车',         border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招', url:'https://campus.kuaishou.cn/',type:'c'},{label:'社招', url:'https://zhaopin.kuaishou.cn/',type:'s'}] },
+  { cat:'internet', icon:'🛍️', name:'拼多多',   desc:'社交电商，市值跻身顶级互联网公司',   border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招/社招', url:'https://careers.pinduoduo.com/',type:'c'}] },
+  { cat:'internet', icon:'🚗', name:'滴滴',      desc:'共享出行平台，自动驾驶布局领先',     border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://talent.didiglobal.com/',type:'c'}] },
+  { cat:'internet', icon:'📔', name:'小红书',    desc:'生活方式社区，种草电商双引擎',       border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招/社招', url:'https://job.xiaohongshu.com/',type:'c'}] },
+  { cat:'internet', icon:'📺', name:'哔哩哔哩',  desc:'视频社区、二次元文化、知识传播',     border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://careers.bilibili.com/',type:'c'}] },
+  { cat:'internet', icon:'🐜', name:'蚂蚁集团',  desc:'支付宝、金融科技、全球支付网络',     border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://talent.antgroup.com/',type:'c'}] },
+  { cat:'internet', icon:'🎨', name:'美图',      desc:'美图秀秀、BeautyPlus，图像AI',      border:'border-pink-200',   iconBg:'bg-pink-100 text-pink-600',    links:[{label:'校招/社招', url:'https://hr.meitu.com/',type:'c'}] },
+  { cat:'internet', icon:'🎮', name:'虎牙',      desc:'游戏直播第一平台，电竞生态',         border:'border-amber-200',  iconBg:'bg-amber-100 text-amber-700',  links:[{label:'校招/社招', url:'https://campus.huya.com/',type:'c'}] },
+
+  // ══ AI / 大模型 ═══════════════════════════════════════════════
+  { cat:'ai', icon:'🧠', name:'商汤科技',   desc:'计算机视觉+AIGC，AI四小龙之首',        border:'border-fuchsia-200', iconBg:'bg-fuchsia-100 text-fuchsia-600',links:[{label:'校招/社招', url:'https://campus.sensetime.com/',type:'c'}] },
+  { cat:'ai', icon:'👁️', name:'旷视科技',   desc:'Face++，视觉AI与智能驾驶领军者',       border:'border-purple-200',  iconBg:'bg-purple-100 text-purple-600', links:[{label:'校招/社招', url:'https://megvii.com/careers',type:'c'}] },
+  { cat:'ai', icon:'🗣️', name:'科大讯飞',   desc:'智能语音、NLP、讯飞星火大模型',        border:'border-sky-200',     iconBg:'bg-sky-100 text-sky-600',       links:[{label:'校招', url:'https://campus.iflytek.com/',type:'c'},{label:'社招', url:'https://job.iflytek.com/',type:'s'}] },
+  { cat:'ai', icon:'✨', name:'智谱AI',     desc:'GLM大模型，清华系AI独角兽',            border:'border-indigo-200',  iconBg:'bg-indigo-100 text-indigo-600', links:[{label:'校招/社招', url:'https://www.zhipuai.cn/joinus',type:'c'}] },
+  { cat:'ai', icon:'🌙', name:'月之暗面',   desc:'Kimi智能助手，长文本大模型',           border:'border-slate-200',   iconBg:'bg-slate-100 text-slate-600',   links:[{label:'校招/社招', url:'https://www.moonshot.cn/careers',type:'c'}] },
+  { cat:'ai', icon:'🌊', name:'百川智能',   desc:'百川大模型，王小川创立AI独角兽',        border:'border-cyan-200',    iconBg:'bg-cyan-100 text-cyan-700',     links:[{label:'校招/社招', url:'https://www.baichuan-ai.com/joinus',type:'c'}] },
+  { cat:'ai', icon:'🦋', name:'阶跃星辰',   desc:'Step大模型，多模态AI前沿探索',         border:'border-violet-200',  iconBg:'bg-violet-100 text-violet-600', links:[{label:'校招/社招', url:'https://www.stepfun.com/careers',type:'c'}] },
+  { cat:'ai', icon:'🔮', name:'Minimax',    desc:'海螺AI，对话、语音、视频生成',         border:'border-purple-200',  iconBg:'bg-purple-100 text-purple-600', links:[{label:'校招/社招', url:'https://www.minimaxi.com/joinus',type:'c'}] },
+  { cat:'ai', icon:'🌟', name:'零一万物',   desc:'Yi系列大模型，李开复旗下AI企业',       border:'border-amber-200',   iconBg:'bg-amber-100 text-amber-700',   links:[{label:'校招/社招', url:'https://www.01.ai/careers',type:'c'}] },
+  { cat:'ai', icon:'🤖', name:'深度求索',   desc:'DeepSeek，性能顶尖的开源大模型',       border:'border-blue-200',    iconBg:'bg-blue-100 text-blue-600',     links:[{label:'校招/社招', url:'https://www.deepseek.com/joinus',type:'c'}] },
+  { cat:'ai', icon:'🧩', name:'云从科技',   desc:'人机协同，AI四小龙政务/金融方向',      border:'border-teal-200',    iconBg:'bg-teal-100 text-teal-700',     links:[{label:'校招/社招', url:'https://hr.cloudwalk.com/',type:'c'}] },
+  { cat:'ai', icon:'⚡', name:'寒武纪',     desc:'AI芯片+深度学习处理器，A股AI芯片第一', border:'border-orange-200',  iconBg:'bg-orange-100 text-orange-600', links:[{label:'校招/社招', url:'https://www.cambricon.com/join',type:'c'}] },
+
+  // ══ 游戏公司 ══════════════════════════════════════════════════
+  { cat:'game', icon:'🎮', name:'腾讯游戏',  desc:'王者荣耀、和平精英，国内游戏龙头',      border:'border-blue-200',    iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招', url:'https://join.qq.com/',type:'c'},{label:'社招', url:'https://careers.tencent.com/',type:'s'}] },
+  { cat:'game', icon:'🏛️', name:'网易游戏',  desc:'永劫无间、明日之后，研发实力强劲',      border:'border-red-200',     iconBg:'bg-red-100 text-red-600',      links:[{label:'校招', url:'https://campus.163.com/',type:'c'},{label:'社招', url:'https://hr.163.com/',type:'s'}] },
+  { cat:'game', icon:'⚔️', name:'米哈游',    desc:'原神、崩坏，二次元顶流游戏厂商',        border:'border-indigo-200',  iconBg:'bg-indigo-100 text-indigo-600',links:[{label:'校招/社招', url:'https://join.mihoyo.com/',type:'c'}] },
+  { cat:'game', icon:'🌹', name:'莉莉丝游戏', desc:'万国觉醒、剑与远征，SLG出海标杆',      border:'border-rose-200',    iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招/社招', url:'https://jobs.lilith.com/',type:'c'}] },
+  { cat:'game', icon:'🎲', name:'三七互娱',  desc:'深耕移动游戏，全球化发行能力强',        border:'border-purple-200',  iconBg:'bg-purple-100 text-purple-600',links:[{label:'校招/社招', url:'https://zhaopin.37.com/',type:'c'}] },
+  { cat:'game', icon:'🌐', name:'完美世界',  desc:'端游老牌厂商，影视+游戏双轮驱动',       border:'border-emerald-200', iconBg:'bg-emerald-100 text-emerald-600',links:[{label:'校招/社招', url:'https://hr.perfectworld.com/',type:'c'}] },
+  { cat:'game', icon:'🧩', name:'叠纸游戏',  desc:'恋与制作人、闪耀暖暖，女性向赛道领军',  border:'border-pink-200',    iconBg:'bg-pink-100 text-pink-600',    links:[{label:'校招/社招', url:'https://www.papegames.com/job',type:'c'}] },
+  { cat:'game', icon:'🔥', name:'鹰角网络',  desc:'明日方舟，二次元+策略品类创新厂商',     border:'border-amber-200',   iconBg:'bg-amber-100 text-amber-700',  links:[{label:'校招/社招', url:'https://job.hypergryph.com/',type:'c'}] },
+  { cat:'game', icon:'🎯', name:'祖龙娱乐',  desc:'龙族幻想，国产手游头部厂商',            border:'border-teal-200',    iconBg:'bg-teal-100 text-teal-700',    links:[{label:'校招/社招', url:'https://job.dragonest.com/',type:'c'}] },
+  { cat:'game', icon:'🌙', name:'游族网络',  desc:'权力的游戏、少年三国志，多IP运营',       border:'border-violet-200',  iconBg:'bg-violet-100 text-violet-600',links:[{label:'校招/社招', url:'https://hr.yoozoo.com/',type:'c'}] },
+
+  // ══ 芯片/半导体 ═══════════════════════════════════════════════
+  { cat:'chip', icon:'🔵', name:'中芯国际',  desc:'国内最大晶圆代工厂，覆盖多技术节点',    border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://careers.smics.com/',type:'c'}] },
+  { cat:'chip', icon:'🔴', name:'华虹半导体', desc:'特色工艺代工，嵌入式存储/功率器件',    border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://www.huahong-semi.com/joinUs',type:'c'}] },
+  { cat:'chip', icon:'🟡', name:'长鑫存储',  desc:'国产DRAM独苗，合肥战略布局',           border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招/社招', url:'https://www.cxmt.com/join/',type:'c'}] },
+  { cat:'chip', icon:'🟢', name:'长江存储',  desc:'国内唯一3D NAND存储芯片厂商，武汉',    border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招/社招', url:'https://www.yangtze-memory.com/careers',type:'c'}] },
+  { cat:'chip', icon:'🟣', name:'兆易创新',  desc:'NOR Flash全球第三，MCU国内第一',       border:'border-purple-200', iconBg:'bg-purple-100 text-purple-600',links:[{label:'校招/社招', url:'https://www.gigadevice.com.cn/about/join',type:'c'}] },
+  { cat:'chip', icon:'🌊', name:'海光信息',  desc:'国产x86 CPU，数据中心高性能计算',       border:'border-cyan-200',   iconBg:'bg-cyan-100 text-cyan-700',    links:[{label:'校招/社招', url:'https://www.hygon.cn/join',type:'c'}] },
+  { cat:'chip', icon:'🔶', name:'龙芯中科',  desc:'国产MIPS/LoongArch架构CPU',            border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://www.loongson.cn/html/joinUs.html',type:'c'}] },
+  { cat:'chip', icon:'🌟', name:'地平线',    desc:'车载AI芯片，智能驾驶感知计算平台',      border:'border-amber-200',  iconBg:'bg-amber-100 text-amber-700',  links:[{label:'校招/社招', url:'https://horizon.cc/aboutus/join',type:'c'}] },
+  { cat:'chip', icon:'⚡', name:'比亚迪半导体', desc:'比亚迪旗下，IGBT+SiC功率器件',      border:'border-emerald-200',iconBg:'bg-emerald-100 text-emerald-600',links:[{label:'校招/社招', url:'https://job.byd.com/',type:'c'}] },
+  { cat:'chip', icon:'🔷', name:'澜起科技',  desc:'内存接口芯片全球龙头，AI平台布局',      border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://www.montage-tech.com/joinus',type:'c'}] },
+
+  // ══ 新能源汽车 ════════════════════════════════════════════════
+  { cat:'auto', icon:'🔋', name:'比亚迪',    desc:'全球新能源汽车销量第一，垂直整合',       border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招', url:'https://job.byd.com/portal/mobile/school-home',type:'c'},{label:'社招', url:'https://job.byd.com/',type:'s'}] },
+  { cat:'auto', icon:'🚙', name:'蔚来',      desc:'高端电动车+换电体系，Super Sparks计划',  border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招', url:'https://campus.nio.com/',type:'c'},{label:'社招', url:'https://www.nio.com/careers',type:'s'}] },
+  { cat:'auto', icon:'⚡', name:'小鹏汽车',  desc:'智能辅助驾驶领先，XNGP技术量产',        border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://xiaopeng.jobs.feishu.cn/',type:'c'}] },
+  { cat:'auto', icon:'💡', name:'理想汽车',  desc:'增程电动+纯电，家庭用车首选品牌',        border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招/社招', url:'https://job.lixiang.com/',type:'c'}] },
+  { cat:'auto', icon:'🤖', name:'特斯拉中国', desc:'全球电动车标杆，上海超级工厂',          border:'border-gray-300',   iconBg:'bg-gray-200 text-gray-700',    links:[{label:'校招/社招', url:'https://www.tesla.com/zh_CN/careers',type:'c'}] },
+  { cat:'auto', icon:'🌸', name:'华为智选车', desc:'鸿蒙智行生态，问界/智界系列',           border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招', url:'https://career.huawei.com/reccampus/',type:'c'},{label:'社招', url:'https://career.huawei.com/recsite/',type:'s'}] },
+  { cat:'auto', icon:'🚀', name:'极氪',      desc:'吉利旗下高端电动车，极氪001/007',        border:'border-purple-200', iconBg:'bg-purple-100 text-purple-600',links:[{label:'校招/社招', url:'https://zeekr.jobs.feishu.cn/',type:'c'}] },
+  { cat:'auto', icon:'🌊', name:'岚图汽车',  desc:'东风旗下新势力，豪华纯电越野',           border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://hr.lantu.com/',type:'c'}] },
+  { cat:'auto', icon:'🏎️', name:'小米汽车',  desc:'SU7横空出世，小米生态造车',             border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招', url:'https://campus.xiaomi.com/',type:'c'},{label:'社招', url:'https://hr.xiaomi.com/',type:'s'}] },
+
+  // ══ 硬件/手机 ══════════════════════════════════════════════════
+  { cat:'hardware', icon:'📱', name:'OPPO',   desc:'ColorOS、Find系列旗舰，全球前五手机',    border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招', url:'https://careers.oppo.com/campus',type:'c'},{label:'社招', url:'https://careers.oppo.com/',type:'s'}] },
+  { cat:'hardware', icon:'📲', name:'vivo',   desc:'X系列旗舰，影像+设计双驱动',             border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://hr.vivo.com/',type:'c'}] },
+  { cat:'hardware', icon:'🏅', name:'荣耀',   desc:'从华为独立，旗舰机型持续突破',           border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://career.hihonor.com/',type:'c'}] },
+  { cat:'hardware', icon:'💻', name:'联想',   desc:'全球PC第一，IDG+ISG+SSG三大业务群',     border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://careers.lenovo.com.cn/',type:'c'}] },
+  { cat:'hardware', icon:'📱', name:'小米',   desc:'手机+IoT+互联网服务，生态链模式',        border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招', url:'https://campus.xiaomi.com/',type:'c'},{label:'社招', url:'https://hr.xiaomi.com/',type:'s'}] },
+  { cat:'hardware', icon:'🖥️', name:'大疆',   desc:'无人机全球市占率70%+，机器人布局',       border:'border-gray-300',   iconBg:'bg-gray-200 text-gray-700',    links:[{label:'校招/社招', url:'https://we.dji.com/jobs',type:'c'}] },
+  { cat:'hardware', icon:'🔬', name:'海康威视', desc:'视频监控全球第一，AI+安防巨头',        border:'border-teal-200',   iconBg:'bg-teal-100 text-teal-700',    links:[{label:'校招/社招', url:'https://hr.hikvision.com/',type:'c'}] },
+
+  // ══ 金融/银行 ══════════════════════════════════════════════════
+  { cat:'finance', icon:'🏦', name:'招商银行',  desc:'零售银行标杆，金融科技领先，MAU亿级',  border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://career.cmbchina.com/',type:'c'}] },
+  { cat:'finance', icon:'🏛️', name:'中国银行',  desc:'四大行之一，国际化程度最高',            border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://www.boc.cn/aboutboc/bi4/',type:'c'}] },
+  { cat:'finance', icon:'🔷', name:'中金公司',  desc:'顶级本土投行，Target School要求高',     border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://www.cicc.com/portal/zh/CareerDevelopment/index.html',type:'c'}] },
+  { cat:'finance', icon:'📈', name:'中信证券',  desc:'国内最大证券公司，校招规模领先',         border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://hr.cs.com.cn/',type:'c'}] },
+  { cat:'finance', icon:'🔴', name:'华泰证券',  desc:'Fintech+财富管理，数字化券商典范',      border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招/社招', url:'https://campus.htsc.com.cn/',type:'c'}] },
+  { cat:'finance', icon:'💛', name:'高盛',      desc:'全球顶级投行，精英求职梦校',            border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招/社招', url:'https://www.goldmansachs.com/careers/',type:'c'}] },
+  { cat:'finance', icon:'🌐', name:'摩根大通',  desc:'全球最大银行，投行+资管双强',           border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://careers.jpmorgan.com/',type:'c'}] },
+  { cat:'finance', icon:'🔵', name:'摩根士丹利', desc:'全球顶级投行，并购/IPO首选',           border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://www.morganstanley.com/careers/',type:'c'}] },
+  { cat:'finance', icon:'🌍', name:'汇丰银行',  desc:'全球化程度最高的外资零售银行',          border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://www.hsbc.com/careers',type:'c'}] },
+  { cat:'finance', icon:'🟦', name:'工商银行',  desc:'全球最大银行，金融科技投入领先',         border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://job.icbc.com.cn/',type:'c'}] },
+  { cat:'finance', icon:'🟩', name:'建设银行',  desc:'四大行之一，住房金融特色鲜明',           border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招/社招', url:'https://job.ccb.com/',type:'c'}] },
+  { cat:'finance', icon:'🟠', name:'农业银行',  desc:'四大行之一，县域金融覆盖最广',           border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://job.abchina.com/',type:'c'}] },
+  { cat:'finance', icon:'⚡', name:'蚂蚁集团',  desc:'支付宝、花呗，FinTech独角兽',           border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://talent.antgroup.com/',type:'c'}] },
+
+  // ══ 咨询/四大 ══════════════════════════════════════════════════
+  { cat:'consulting', icon:'♟️', name:'麦肯锡',     desc:'全球顶级战略咨询，MBB之首，PST笔试',  border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://www.mckinsey.com/cn/careers',type:'c'}] },
+  { cat:'consulting', icon:'🌿', name:'BCG 波士顿', desc:'战略+数字化，AI转型先锋，STEM青睐',   border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招/社招', url:'https://careers.bcg.com/',type:'c'}] },
+  { cat:'consulting', icon:'🔴', name:'贝恩咨询',   desc:'私募/并购咨询权威，管培项目优质',      border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://www.bain.com/careers/',type:'c'}] },
+  { cat:'consulting', icon:'🟩', name:'德勤 Deloitte', desc:'四大之首，审计+咨询+税务+财务咨询', border:'border-emerald-200',iconBg:'bg-emerald-100 text-emerald-600',links:[{label:'校招/社招', url:'https://www2.deloitte.com/cn/zh/careers.html',type:'c'}] },
+  { cat:'consulting', icon:'🔶', name:'普华永道 PwC', desc:'全球第二大会计师事务所，资管见长',   border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://www.pwccn.com/zh/careers.html',type:'c'}] },
+  { cat:'consulting', icon:'🟡', name:'安永 EY',    desc:'审计+战略咨询，全球四大之一',          border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招/社招', url:'https://www.ey.com/zh_cn/careers',type:'c'}] },
+  { cat:'consulting', icon:'🔷', name:'毕马威 KPMG', desc:'财务/审计/税务咨询，监管咨询见长',   border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://kpmg.com/cn/zh/home/careers.html',type:'c'}] },
+  { cat:'consulting', icon:'⚙️', name:'埃森哲',     desc:'全球最大管理咨询，数字化转型首选',     border:'border-violet-200', iconBg:'bg-violet-100 text-violet-600',links:[{label:'校招/社招', url:'https://www.accenture.com/cn-zh/careers',type:'c'}] },
+  { cat:'consulting', icon:'🌐', name:'罗兰贝格',   desc:'欧洲最大战略咨询，汽车/制造见长',      border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://www.rolandberger.com/zh/Careers/',type:'c'}] },
+  { cat:'consulting', icon:'🔮', name:'科尔尼',     desc:'A.T. Kearney，供应链/运营咨询权威',   border:'border-purple-200', iconBg:'bg-purple-100 text-purple-600',links:[{label:'校招/社招', url:'https://www.kearney.com/careers',type:'c'}] },
+  { cat:'consulting', icon:'📊', name:'Oliver Wyman', desc:'奥纬咨询，金融行业咨询领先',        border:'border-teal-200',   iconBg:'bg-teal-100 text-teal-700',    links:[{label:'校招/社招', url:'https://www.oliverwyman.com/careers.html',type:'c'}] },
+
+  // ══ 外企科技 ══════════════════════════════════════════════════
+  { cat:'foreign', icon:'🪟', name:'微软',     desc:'云计算Azure、Office、AI Copilot',       border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://careers.microsoft.com/',type:'c'}] },
+  { cat:'foreign', icon:'🔍', name:'谷歌',     desc:'搜索引擎、Android、云平台、DeepMind',    border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://careers.google.com/',type:'c'}] },
+  { cat:'foreign', icon:'🍎', name:'苹果',     desc:'iPhone、Mac、iOS生态系统',               border:'border-gray-300',   iconBg:'bg-gray-200 text-gray-700',    links:[{label:'校招/社招', url:'https://jobs.apple.com/zh-cn/',type:'c'}] },
+  { cat:'foreign', icon:'🛒', name:'亚马逊',   desc:'AWS云计算全球第一、电商+物流',           border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://www.amazon.jobs/',type:'c'}] },
+  { cat:'foreign', icon:'🔵', name:'IBM',      desc:'企业级云计算、AI咨询、量子计算',          border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://www.ibm.com/cn-zh/employment/',type:'c'}] },
+  { cat:'foreign', icon:'🎯', name:'英特尔',   desc:'CPU、FPGA、数据中心芯片领导者',           border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://jobs.intel.com/',type:'c'}] },
+  { cat:'foreign', icon:'🟢', name:'英伟达',   desc:'GPU+AI计算+CUDA生态，市值第一科技公司',  border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招/社招', url:'https://nvidia.wd5.myworkdayjobs.com/',type:'c'}] },
+  { cat:'foreign', icon:'🔴', name:'甲骨文',   desc:'数据库+云计算+ERP，企业软件巨头',        border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://www.oracle.com/careers/',type:'c'}] },
+  { cat:'foreign', icon:'🔷', name:'SAP',      desc:'企业管理软件领导者，ERP/CRM/SCM',        border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://jobs.sap.com/',type:'c'}] },
+  { cat:'foreign', icon:'🌐', name:'Salesforce', desc:'全球CRM第一，云端SaaS企业软件',       border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://www.salesforce.com/company/careers/',type:'c'}] },
+  { cat:'foreign', icon:'🤝', name:'Accenture', desc:'埃森哲，全球最大IT+管理咨询',           border:'border-violet-200', iconBg:'bg-violet-100 text-violet-600',links:[{label:'校招/社招', url:'https://www.accenture.com/cn-zh/careers',type:'c'}] },
+  { cat:'foreign', icon:'📡', name:'高通',     desc:'骁龙芯片、5G基带，移动计算核心',         border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://www.qualcomm.com/company/careers',type:'c'}] },
+
+  // ══ 央企/国企 ══════════════════════════════════════════════════
+  { cat:'state', icon:'📱', name:'中国移动',   desc:'三大运营商之首，5G用户规模全球第一',     border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://hr.10086.cn/',type:'c'}] },
+  { cat:'state', icon:'📡', name:'中国联通',   desc:'三大运营商，4G/5G覆盖全国，混改标杆',   border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://recruit.chinaunicom.com/',type:'c'}] },
+  { cat:'state', icon:'🌐', name:'中国电信',   desc:'云计算+5G，天翼云国资云龙头',           border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://hr.chinatelecom.com.cn/',type:'c'}] },
+  { cat:'state', icon:'⚡', name:'国家电网',   desc:'超大型央企，事业编制+六险一金福利',      border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招/社招', url:'https://career.sgcc.com.cn/',type:'c'}] },
+  { cat:'state', icon:'🛢️', name:'中国石油',   desc:'CNPC，油气勘探开采+化工',              border:'border-teal-200',   iconBg:'bg-teal-100 text-teal-700',    links:[{label:'校招/社招', url:'https://zhaopin.cnpc.com.cn/',type:'c'}] },
+  { cat:'state', icon:'⛽', name:'中国石化',   desc:'Sinopec，炼化+化工+零售一体化',         border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://zhaopin.sinopec.com/',type:'c'}] },
+  { cat:'state', icon:'✈️', name:'中国航空工业', desc:'AVIC，航空装备制造国家队',             border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://hr.avic.com.cn/',type:'c'}] },
+  { cat:'state', icon:'🚅', name:'中国中车',   desc:'高铁制造全球第一，轨道交通龙头',         border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://crrc.hotjob.cn/',type:'c'}] },
+  { cat:'state', icon:'🏦', name:'国聘平台',   desc:'国资央企官方招聘平台，一站式汇聚',       border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招', url:'https://xiaoyuan.iguopin.com/',type:'c'},{label:'社招', url:'https://www.iguopin.com/',type:'s'}] },
+
+  // ══ 航空航天/军工 ══════════════════════════════════════════════
+  { cat:'aerospace', icon:'🚀', name:'中国航天科技', desc:'CASC，国家航天战略主力军，多院布局', border:'border-indigo-200', iconBg:'bg-indigo-100 text-indigo-600',links:[{label:'校招/社招', url:'https://www.spacetalent.com.cn/',type:'c'}] },
+  { cat:'aerospace', icon:'✈️', name:'中国商飞',  desc:'C919/C929研制，国产大飞机梦之队',     border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://zhaopin.comac.cc/',type:'c'}] },
+  { cat:'aerospace', icon:'🛡️', name:'航天科工',  desc:'CASIC，防务+商业航天，导弹研制',       border:'border-gray-300',   iconBg:'bg-gray-200 text-gray-700',    links:[{label:'校招/社招', url:'https://www.casic.com.cn/n5765/index.html',type:'c'}] },
+  { cat:'aerospace', icon:'📡', name:'中国电科',  desc:'CETC，电子信息+雷达+通信装备',         border:'border-teal-200',   iconBg:'bg-teal-100 text-teal-700',    links:[{label:'校招/社招', url:'https://www.cetc.com.cn/html1/redir.thtml?catid=16&id=8',type:'c'}] },
+  { cat:'aerospace', icon:'🔭', name:'中国兵器',  desc:'兵器科技集团，坦克/炮兵装备研制',       border:'border-amber-200',  iconBg:'bg-amber-100 text-amber-700',  links:[{label:'校招/社招', url:'https://zhaopin.nhrdc.cn/campus/jobs.jsp',type:'c'}] },
+  { cat:'aerospace', icon:'⚙️', name:'中国船舶',  desc:'CSSC，军用+民用船舶+海工装备',         border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://hr.cssc.net.cn/',type:'c'}] },
+  { cat:'aerospace', icon:'🌌', name:'蓝箭航天',  desc:'朱雀三号可复用火箭，商业航天新星',       border:'border-violet-200', iconBg:'bg-violet-100 text-violet-600',links:[{label:'校招/社招', url:'https://www.landspace.com/joinus/',type:'c'}] },
+  { cat:'aerospace', icon:'🛸', name:'星际荣耀',  desc:'双曲线系列，民营航天先行者',            border:'border-purple-200', iconBg:'bg-purple-100 text-purple-600',links:[{label:'校招/社招', url:'https://www.isace.com.cn/join',type:'c'}] },
+
+  // ══ 医疗/生命科学 ════════════════════════════════════════════
+  { cat:'medical', icon:'🔬', name:'联影医疗',   desc:'MR/CT全线覆盖，国产影像设备领军',      border:'border-teal-200',   iconBg:'bg-teal-100 text-teal-700',    links:[{label:'校招/社招', url:'https://campus.united-imaging.com/',type:'c'}] },
+  { cat:'medical', icon:'💊', name:'药明康德',   desc:'CRO/CDMO龙头，新药研发全链条服务',      border:'border-green-200',  iconBg:'bg-green-100 text-green-600',  links:[{label:'校招', url:'https://campus.wuxiapptec.com/',type:'c'},{label:'社招', url:'https://careers.wuxiapptec.com/',type:'s'}] },
+  { cat:'medical', icon:'🩺', name:'迈瑞医疗',   desc:'医疗器械国内市值第一，出海标杆',        border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招', url:'https://campus.mindray.com/',type:'c'},{label:'社招', url:'https://careers.mindray.com/',type:'s'}] },
+  { cat:'medical', icon:'🧬', name:'华大基因',   desc:'基因测序+精准医学，全球布局NGS',        border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://hr.bgi.com/',type:'c'}] },
+  { cat:'medical', icon:'💉', name:'恒瑞医药',   desc:'国内最大制药企业，创新药研发龙头',       border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招/社招', url:'https://careers.hengrui.com/',type:'c'}] },
+  { cat:'medical', icon:'🌿', name:'百济神州',   desc:'全球创新药，泽布替尼出海里程碑',         border:'border-purple-200', iconBg:'bg-purple-100 text-purple-600',links:[{label:'校招/社招', url:'https://www.beigene.com.cn/zh-CN/careers/',type:'c'}] },
+  { cat:'medical', icon:'🔩', name:'美敦力',     desc:'全球最大医疗器械公司，心脏/神经',        border:'border-orange-200', iconBg:'bg-orange-100 text-orange-600',links:[{label:'校招/社招', url:'https://jobs.medtronic.com/',type:'c'}] },
+  { cat:'medical', icon:'🧪', name:'强生医疗',   desc:'强生旗下医疗设备+制药，全球三大行',      border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://jobs.jnj.com/',type:'c'}] },
+
+  // ══ 快消/零售 ══════════════════════════════════════════════════
+  { cat:'fmcg', icon:'🫧', name:'宝洁 P&G',   desc:'全球快消第一，管培生培养体系经典',       border:'border-blue-200',   iconBg:'bg-blue-100 text-blue-600',    links:[{label:'校招/社招', url:'https://www.pgcareers.com/cn',type:'c'}] },
+  { cat:'fmcg', icon:'🌊', name:'联合利华',   desc:'快消巨头，MT管培生发展路径清晰',          border:'border-sky-200',    iconBg:'bg-sky-100 text-sky-600',      links:[{label:'校招/社招', url:'https://careers.unilever.com/',type:'c'}] },
+  { cat:'fmcg', icon:'🥤', name:'可口可乐',   desc:'全球最大饮料公司，销售/供应链管培',       border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://www.coca-colacompany.com/careers',type:'c'}] },
+  { cat:'fmcg', icon:'🍺', name:'百威英博',   desc:'全球最大啤酒公司，GTM管培项目',          border:'border-yellow-200', iconBg:'bg-yellow-100 text-yellow-700',links:[{label:'校招/社招', url:'https://www.ab-inbev.com/careers/',type:'c'}] },
+  { cat:'fmcg', icon:'🍫', name:'玛氏',       desc:'M&M、士力架、宠物食品多元布局',          border:'border-amber-200',  iconBg:'bg-amber-100 text-amber-700',  links:[{label:'校招/社招', url:'https://www.mars.com/careers',type:'c'}] },
+  { cat:'fmcg', icon:'🛍️', name:'唯品会',    desc:'特卖电商+买手制，服饰品牌折扣平台',      border:'border-rose-200',   iconBg:'bg-rose-100 text-rose-600',    links:[{label:'校招/社招', url:'https://campus.vip.com/',type:'c'}] },
+  { cat:'fmcg', icon:'🌟', name:'名创优品',   desc:'MINISO，全球化生活方式零售品牌',         border:'border-red-200',    iconBg:'bg-red-100 text-red-600',      links:[{label:'校招/社招', url:'https://job.miniso.com/',type:'c'}] },
+  { cat:'fmcg', icon:'🎀', name:'欧莱雅',    desc:'全球最大美妆公司，管培生体系完善',        border:'border-fuchsia-200',iconBg:'bg-fuchsia-100 text-fuchsia-600',links:[{label:'校招/社招', url:'https://careers.loreal.com.cn/',type:'c'}] },
+];
+
+// ── State ─────────────────────────────────────────────
+let currentTab = 'all';
+
+// ── Render ─────────────────────────────────────────────
+function renderCards() {
+  const q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
+  const grid = document.getElementById('cardGrid');
+  const emptyTip = document.getElementById('emptyTip');
+  const statsBar = document.getElementById('statsBar');
+
+  const filtered = companies.filter(c => {
+    const matchCat = currentTab === 'all' || c.cat === currentTab;
+    const matchQ = !q || c.name.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  grid.innerHTML = '';
+
+  if (filtered.length === 0) {
+    emptyTip.classList.remove('hidden');
+    statsBar.textContent = '';
+    return;
+  }
+  emptyTip.classList.add('hidden');
+  statsBar.textContent = `共 ${filtered.length} 个结果`;
+
+  filtered.forEach(c => {
+    const meta = CAT_META[c.cat] || { label: c.cat, color:'bg-gray-100 text-gray-500' };
+    const linksHtml = c.links.map(l => {
+      const style = l.type === 'c'
+        ? 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+        : l.type === 's'
+          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+          : 'bg-gray-100 text-gray-600 hover:bg-gray-200';
+      return `<a href="${l.url}" target="_blank" rel="noopener" class="link-btn ${style}">${l.label} ↗</a>`;
+    }).join('');
+
+    const el = document.createElement('div');
+    el.className = `company-card bg-white rounded-2xl p-4 border ${c.border} shadow-sm flex flex-col gap-3`;
+    el.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl ${c.iconBg} flex items-center justify-center text-lg flex-shrink-0">${c.icon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-semibold text-gray-800 text-sm">${c.name}</span>
+            <span class="text-xs px-1.5 py-0.5 rounded-full font-medium ${meta.color}">${meta.label}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">${c.desc}</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1.5 pt-2 border-t border-gray-100">${linksHtml}</div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function setTab(btn, tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCards();
+}
+
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+if (document.documentElement.classList.contains('dark'))
+  document.getElementById('themeBtn').textContent = '☀️';
+
+renderCards();
+</script>
+</body>
+</html>
