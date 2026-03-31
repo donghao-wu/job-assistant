@@ -35,6 +35,11 @@
     html.dark .company-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.45) !important; }
     .link-btn { transition: all .12s; font-size:.73rem; font-weight:500; padding:.22rem .6rem; border-radius:9999px; display:inline-block; }
     .section-header { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#94a3b8; margin:1.75rem 0 .75rem; }
+
+    html.dark nav .nav-link { color: #64748b; border-color: transparent; }
+    html.dark nav .nav-link.active { color: #f1f5f9; border-color: #f1f5f9; }
+    html.dark nav .nav-link:hover { color: #cbd5e1; }
+    html.dark nav > div { border-color: #1e293b !important; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen transition-colors duration-200">
@@ -42,16 +47,18 @@
 <div class="max-w-7xl mx-auto py-10 px-4">
 
   <!-- Nav -->
-  <div class="flex justify-center gap-2 mb-8 items-center flex-wrap">
-    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
-    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
-    <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
-    <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
-    <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
-    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
-    <a href="/nav" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">求职导航</a>
-    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
+  <nav class="flex justify-center mb-10">
+  <div class="flex items-center gap-0 border-b border-gray-100 w-full max-w-4xl overflow-x-auto">
+    <a href="/" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">简历优化</a>
+    <a href="/profile-page" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">我的档案</a>
+    <a href="/tracker" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">投递追踪</a>
+    <a href="/interview" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">面试准备</a>
+    <a href="/match" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">岗位匹配</a>
+    <a href="/offer" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">Offer对比</a>
+    <a href="/nav" class="nav-link active px-4 py-3 text-sm font-medium text-gray-900 border-b-2 border-gray-900 whitespace-nowrap -mb-px">求职导航</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="ml-auto px-3 py-3 text-base text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">🌙</button>
   </div>
+  </nav>
 
   <!-- Header -->
   <div class="mb-6 text-center">
@@ -321,7 +328,7 @@ function renderCards() {
     }).join('');
 
     const el = document.createElement('div');
-    el.className = `company-card bg-white rounded-2xl p-4 border ${c.border} shadow-sm flex flex-col gap-3`;
+    el.className = `company-card bg-white rounded-xl p-4 border ${c.border} flex flex-col gap-3`;
     el.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 rounded-xl ${c.iconBg} flex items-center justify-center text-lg flex-shrink-0">${c.icon}</div>

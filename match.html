@@ -26,28 +26,35 @@
 
     .score-ring { transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
     .skill-pill { font-size:.72rem; padding:.2rem .55rem; border-radius:9999px; font-weight:500; }
+
+    html.dark nav .nav-link { color: #64748b; border-color: transparent; }
+    html.dark nav .nav-link.active { color: #f1f5f9; border-color: #f1f5f9; }
+    html.dark nav .nav-link:hover { color: #cbd5e1; }
+    html.dark nav > div { border-color: #1e293b !important; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen transition-colors duration-200">
 <div class="max-w-6xl mx-auto py-10 px-4">
 
   <!-- Nav -->
-  <div class="flex justify-center gap-2 mb-8 items-center flex-wrap">
-    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
-    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
-    <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
-    <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
-    <a href="/match" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">岗位匹配</a>
-    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
-    <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
-    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
+  <nav class="flex justify-center mb-10">
+  <div class="flex items-center gap-0 border-b border-gray-100 w-full max-w-4xl overflow-x-auto">
+    <a href="/" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">简历优化</a>
+    <a href="/profile-page" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">我的档案</a>
+    <a href="/tracker" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">投递追踪</a>
+    <a href="/interview" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">面试准备</a>
+    <a href="/match" class="nav-link active px-4 py-3 text-sm font-medium text-gray-900 border-b-2 border-gray-900 whitespace-nowrap -mb-px">岗位匹配</a>
+    <a href="/offer" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">Offer对比</a>
+    <a href="/nav" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">求职导航</a>
+    <button onclick="toggleTheme()" id="themeBtn" class="ml-auto px-3 py-3 text-base text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">🌙</button>
   </div>
+  </nav>
 
   <div class="flex gap-6 items-start">
 
     <!-- LEFT: Input panel -->
     <div class="w-72 flex-shrink-0 space-y-4 sticky top-6">
-      <div class="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+      <div class="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
         <h2 class="font-bold text-gray-800 text-base">🎯 岗位匹配分析</h2>
         <div>
           <label class="text-xs text-gray-500 mb-1 block">选择档案</label>
@@ -86,7 +93,7 @@
       <div id="resultPanel" class="hidden space-y-5">
 
         <!-- Score card -->
-        <div class="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-6">
+        <div class="bg-white rounded-xl border border-gray-100 p-6 flex items-center gap-6">
           <div class="relative flex-shrink-0">
             <svg width="110" height="110" viewBox="0 0 110 110">
               <circle cx="55" cy="55" r="46" fill="none" stroke="#e2e8f0" stroke-width="10"/>
@@ -107,25 +114,25 @@
         </div>
 
         <!-- Key skills -->
-        <div class="bg-white rounded-2xl shadow-sm p-5">
+        <div class="bg-white rounded-xl border border-gray-100 p-5">
           <h3 class="font-semibold text-gray-700 text-sm mb-3">🔑 关键技能匹配</h3>
           <div id="skillsContainer" class="flex flex-wrap gap-2"></div>
         </div>
 
         <!-- Strengths -->
-        <div class="bg-white rounded-2xl shadow-sm p-5">
+        <div class="bg-white rounded-xl border border-gray-100 p-5">
           <h3 class="font-semibold text-gray-700 text-sm mb-3">✅ 匹配优势</h3>
           <div id="strengthsList" class="space-y-3"></div>
         </div>
 
         <!-- Gaps -->
-        <div class="bg-white rounded-2xl shadow-sm p-5">
+        <div class="bg-white rounded-xl border border-gray-100 p-5">
           <h3 class="font-semibold text-gray-700 text-sm mb-3">⚠️ 差距与建议</h3>
           <div id="gapsList" class="space-y-3"></div>
         </div>
 
         <!-- Advice -->
-        <div id="adviceCard" class="bg-blue-50 rounded-2xl p-5 border border-blue-100">
+        <div id="adviceCard" class="bg-blue-50 rounded-xl p-5 border border-blue-100">
           <h3 class="font-semibold text-blue-700 text-sm mb-2">💡 综合建议</h3>
           <p id="adviceText" class="text-blue-700 text-sm leading-relaxed"></p>
         </div>

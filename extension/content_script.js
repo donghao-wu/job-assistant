@@ -104,7 +104,7 @@ function setNativeValue(el, value) {
     return;
   }
 
-  // input / textarea：用原生 setter 兼容 React
+  // input / textarea：用原生 setter 兼容 React / Vue
   const proto = el.tagName === 'TEXTAREA'
     ? window.HTMLTextAreaElement.prototype
     : window.HTMLInputElement.prototype;
@@ -116,8 +116,10 @@ function setNativeValue(el, value) {
     el.value = value;
   }
 
+  el.dispatchEvent(new Event('focus',  { bubbles: true }));
   el.dispatchEvent(new Event('input',  { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new Event('blur',   { bubbles: true }));
 }
 
 // ─── 高亮未识别字段 ───────────────────────────────────────

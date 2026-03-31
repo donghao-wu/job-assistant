@@ -46,6 +46,11 @@
 
     /* dark detail panel */
     html.dark #detailPanel > div:last-child { background:#1e293b !important; }
+
+    /* dark nav */
+    html.dark nav .nav-link { color: #64748b; border-color: transparent; }
+    html.dark nav .nav-link.active { color: #f1f5f9; border-color: #f1f5f9; }
+    html.dark nav .nav-link:hover { color: #cbd5e1; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen transition-colors duration-200">
@@ -53,16 +58,18 @@
 <div class="max-w-7xl mx-auto py-10 px-4">
 
   <!-- Nav -->
-  <div class="flex justify-center gap-2 mb-8 items-center">
-    <a href="/" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">简历优化</a>
-    <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
-    <a href="/tracker" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">投递追踪</a>
-    <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
-    <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
-    <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
-    <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
-    <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
-  </div>
+  <nav class="flex justify-center mb-10">
+    <div class="flex items-center gap-0 border-b border-gray-100 w-full max-w-4xl overflow-x-auto">
+      <a href="/" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">简历优化</a>
+      <a href="/profile-page" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">我的档案</a>
+      <a href="/tracker" class="nav-link active px-4 py-3 text-sm font-medium text-gray-900 border-b-2 border-gray-900 whitespace-nowrap -mb-px">投递追踪</a>
+      <a href="/interview" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">面试准备</a>
+      <a href="/match" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">岗位匹配</a>
+      <a href="/offer" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">Offer对比</a>
+      <a href="/nav" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">求职导航</a>
+      <button onclick="toggleTheme()" id="themeBtn" class="ml-auto px-3 py-3 text-base text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">🌙</button>
+    </div>
+  </nav>
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
@@ -77,19 +84,19 @@
 
   <!-- Stats -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-indigo-400">
+    <div class="bg-white rounded-xl p-5 border-l-4 border-indigo-400">
       <p class="text-xs text-gray-400 mb-1">📨 总投递</p>
       <p class="text-3xl font-bold text-indigo-500" id="statTotal">–</p>
     </div>
-    <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-amber-400">
+    <div class="bg-white rounded-xl p-5 border-l-4 border-amber-400">
       <p class="text-xs text-gray-400 mb-1">⏳ 进行中</p>
       <p class="text-3xl font-bold text-amber-500" id="statProgress">–</p>
     </div>
-    <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-emerald-400">
+    <div class="bg-white rounded-xl p-5 border-l-4 border-emerald-400">
       <p class="text-xs text-gray-400 mb-1">🎉 Offer</p>
       <p class="text-3xl font-bold text-emerald-500" id="statOffer">–</p>
     </div>
-    <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-rose-400">
+    <div class="bg-white rounded-xl p-5 border-l-4 border-rose-400">
       <p class="text-xs text-gray-400 mb-1">❌ 已拒绝</p>
       <p class="text-3xl font-bold text-rose-500" id="statRejected">–</p>
     </div>
@@ -97,18 +104,18 @@
 
   <!-- Charts -->
   <div class="grid md:grid-cols-2 gap-6 mb-8">
-    <div class="bg-white rounded-2xl p-6 shadow-sm">
+    <div class="bg-white rounded-xl border border-gray-100 p-6">
       <h3 class="text-sm font-semibold text-gray-600 mb-4">投递状态分布</h3>
       <div style="width:220px;height:220px;margin:0 auto"><canvas id="statusChart"></canvas></div>
     </div>
-    <div class="bg-white rounded-2xl p-6 shadow-sm">
+    <div class="bg-white rounded-xl border border-gray-100 p-6">
       <h3 class="text-sm font-semibold text-gray-600 mb-4">每周投递量</h3>
       <div style="position:relative;height:200px"><canvas id="weekChart"></canvas></div>
     </div>
   </div>
 
   <!-- Activity Heatmap -->
-  <div class="bg-white rounded-2xl p-6 shadow-sm mb-8">
+  <div class="bg-white rounded-xl border border-gray-100 p-6 mb-8">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-sm font-semibold text-gray-600">每日投递热力图</h3>
       <div id="heatmapLegend" class="flex items-center gap-1.5 text-xs text-gray-400">
@@ -130,9 +137,9 @@
   <!-- View Toggle + Filter -->
   <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
     <div class="flex gap-2">
-      <button id="btnKanban" onclick="setView('kanban')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white">看板</button>
-      <button id="btnTable" onclick="setView('table')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-500 border border-gray-200">表格</button>
-      <button id="btnCalendar" onclick="setView('calendar')" class="view-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-500 border border-gray-200">📅 日历</button>
+      <button id="btnKanban" onclick="setView('kanban')" class="view-btn px-3 py-1.5 rounded-md text-xs font-medium bg-blue-500 text-white">看板</button>
+      <button id="btnTable" onclick="setView('table')" class="view-btn px-3 py-1.5 rounded-md text-xs font-medium bg-white text-gray-500 border border-gray-200">表格</button>
+      <button id="btnCalendar" onclick="setView('calendar')" class="view-btn px-3 py-1.5 rounded-md text-xs font-medium bg-white text-gray-500 border border-gray-200">📅 日历</button>
     </div>
     <div class="flex gap-2 items-center">
       <input id="filterInput" type="text" placeholder="搜索公司 / 职位..."
@@ -152,7 +159,7 @@
 
   <!-- Table -->
   <div id="tableView" class="hidden">
-    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-gray-100">
@@ -173,7 +180,7 @@
 
   <!-- Calendar View -->
   <div id="calendarView" class="hidden">
-    <div class="bg-white rounded-2xl shadow-sm p-5">
+    <div class="bg-white rounded-xl border border-gray-100 p-5">
       <!-- Calendar header -->
       <div class="flex items-center justify-between mb-5">
         <button onclick="calPrev()" class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors text-sm">‹</button>
@@ -201,7 +208,7 @@
       </div>
     </div>
     <!-- Selected day detail -->
-    <div id="calDayDetail" class="hidden mt-4 bg-white rounded-2xl shadow-sm p-5">
+    <div id="calDayDetail" class="hidden mt-4 bg-white rounded-xl border border-gray-100 p-5">
       <h4 id="calDayTitle" class="font-semibold text-gray-700 text-sm mb-3"></h4>
       <div id="calDayList" class="space-y-2"></div>
     </div>
@@ -211,7 +218,7 @@
 
 <!-- Modal -->
 <div id="modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+  <div class="bg-white rounded-xl border border-gray-200 w-full max-w-lg max-h-[90vh] overflow-y-auto">
     <div class="p-6 border-b border-gray-100 flex justify-between items-center">
       <h2 class="font-semibold text-gray-800" id="modalTitle">添加投递</h2>
       <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
@@ -711,7 +718,7 @@ function renderKanban() {
     const cfg = STATUS_CONFIG[status];
     const cards = byStatus[status];
     const col = document.createElement('div');
-    col.className = 'kanban-col flex-shrink-0 w-56 bg-gray-100 rounded-2xl p-3';
+    col.className = 'kanban-col flex-shrink-0 w-56 bg-gray-100 rounded-xl p-3';
     col.innerHTML = `
       <div class="flex items-center gap-2 mb-3 px-1">
         <span class="w-2 h-2 rounded-full inline-block" style="background:${cfg.dot}"></span>

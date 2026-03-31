@@ -52,6 +52,10 @@
     html.dark .text-gray-400 { color:#64748b !important; }
     html.dark .border-gray-200 { border-color:#334155 !important; }
     html.dark textarea, html.dark input { background:#0f172a !important; color:#f1f5f9 !important; border-color:#334155 !important; }
+    html.dark nav .nav-link { color: #64748b; border-color: transparent; }
+    html.dark nav .nav-link.active { color: #f1f5f9; border-color: #f1f5f9; }
+    html.dark nav .nav-link:hover { color: #cbd5e1; }
+    html.dark .border-gray-100 { border-color: #1e293b !important; }
     html.dark textarea::placeholder { color:#475569 !important; }
     html.dark #resultContent h2 { color:#818cf8 !important; border-color:#1e3a5f !important; }
     html.dark #resultContent p { background:#1e293b !important; color:#cbd5e1 !important; border-color:#6366f1 !important; }
@@ -63,25 +67,27 @@
   <div class="max-w-3xl mx-auto py-12 px-4">
 
     <!-- Nav -->
-    <div class="flex justify-center gap-2 mb-8 items-center">
-      <a href="/" class="px-5 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">简历优化</a>
-      <a href="/profile-page" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">我的档案</a>
-      <a href="/tracker" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">投递追踪</a>
-      <a href="/interview" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">面试准备</a>
-      <a href="/match" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">岗位匹配</a>
-      <a href="/offer" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">Offer对比</a>
-      <a href="/nav" class="px-5 py-2 rounded-full bg-white text-gray-500 text-sm font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-500 transition-colors">求职导航</a>
-      <button onclick="toggleTheme()" id="themeBtn" class="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-base hover:border-gray-400 transition-colors shadow-sm">🌙</button>
-    </div>
+    <nav class="flex justify-center mb-10">
+      <div class="flex items-center gap-0 border-b border-gray-100 w-full max-w-3xl overflow-x-auto">
+        <a href="/" class="nav-link active px-4 py-3 text-sm font-medium text-gray-900 border-b-2 border-gray-900 whitespace-nowrap -mb-px">简历优化</a>
+        <a href="/profile-page" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">我的档案</a>
+        <a href="/tracker" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">投递追踪</a>
+        <a href="/interview" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">面试准备</a>
+        <a href="/match" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">岗位匹配</a>
+        <a href="/offer" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">Offer对比</a>
+        <a href="/nav" class="nav-link px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap -mb-px transition-colors">求职导航</a>
+        <button onclick="toggleTheme()" id="themeBtn" class="ml-auto px-3 py-3 text-base text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">🌙</button>
+      </div>
+    </nav>
 
     <!-- Header -->
     <div class="text-center mb-10">
-      <h1 class="text-3xl font-bold text-gray-800">简历优化助手</h1>
-      <p class="text-gray-500 mt-2">上传简历 + 粘贴JD，AI 帮你针对性优化</p>
+      <h1 class="text-xl font-semibold text-gray-800">简历优化助手</h1>
+      <p class="text-sm text-gray-400 mt-2">上传简历 + 粘贴JD，AI 帮你针对性优化</p>
     </div>
 
     <!-- Form -->
-    <div class="bg-white rounded-2xl shadow-sm p-8 space-y-6">
+    <div class="bg-white rounded-xl border border-gray-100 p-8 space-y-6">
 
       <!-- 上传简历 -->
       <div>
@@ -105,13 +111,13 @@
 
       <!-- 提交按钮 -->
       <button onclick="submit()"
-        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-xl transition-colors">
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition-colors">
         开始分析
       </button>
     </div>
 
     <!-- 结果 -->
-    <div id="resultBox" class="hidden mt-8 bg-white rounded-2xl shadow-sm p-8">
+    <div id="resultBox" class="hidden mt-8 bg-white rounded-xl border border-gray-100 p-8">
       <div id="loading" class="text-center py-8">
         <div class="inline-block w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         <p class="text-gray-500 mt-3 text-sm" id="loadingText">AI 分析中，请稍候...</p>
@@ -121,7 +127,7 @@
       <!-- 生成简历按钮（分析完成后显示）-->
       <div id="generateBox" class="hidden mt-6 pt-6 border-t border-gray-100">
         <button onclick="generateResume()"
-          class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
           <span>✨ 生成优化简历（Word）</span>
         </button>
         <p class="text-center text-xs text-gray-400 mt-2">AI 将根据 JD 重写每条经历描述，生成可直接投递的 .docx 文件</p>
@@ -129,7 +135,7 @@
     </div>
 
     <!-- 简历生成进度框 -->
-    <div id="optimizeBox" class="hidden mt-4 bg-white rounded-2xl shadow-sm p-8">
+    <div id="optimizeBox" class="hidden mt-4 bg-white rounded-xl border border-gray-100 p-8">
       <div id="optimizeLoading" class="text-center py-8">
         <div class="inline-block w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
         <p class="text-gray-500 mt-3 text-sm">AI 正在改写简历内容...</p>
@@ -138,7 +144,7 @@
         <div class="text-4xl mb-3">📄</div>
         <p class="text-gray-700 font-medium mb-4">优化简历已生成！</p>
         <button onclick="downloadDocx()"
-          class="bg-blue-500 hover:bg-blue-600 text-white font-medium px-8 py-3 rounded-xl transition-colors">
+          class="bg-blue-500 hover:bg-blue-600 text-white font-medium px-8 py-3 rounded-lg transition-colors">
           ⬇ 下载 Word 文件
         </button>
       </div>
