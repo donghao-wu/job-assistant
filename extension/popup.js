@@ -91,10 +91,14 @@ function pageFillerFn(profile) {
       // ── React 原生 setter（触发受控组件更新）──────────
       function setReactInput(el, value) {
         if (!value || !el || el.readOnly) return false;
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        const proto = el.tagName === 'TEXTAREA'
+          ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
         if (setter) setter.call(el, value); else el.value = value;
+        el.dispatchEvent(new Event('focus',  { bubbles: true }));
         el.dispatchEvent(new Event('input',  { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
+        el.dispatchEvent(new Event('blur',   { bubbles: true }));
         return true;
       }
 
@@ -343,14 +347,14 @@ function pageFillerFn(profile) {
       function setNative(el, value) {
         if (!el || !value || value === '无') return false;
         const isTA = el.tagName === 'TEXTAREA';
-        // 先通过原生 setter 更新 DOM 值
         const proto = isTA ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
         const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
         nativeSetter ? nativeSetter.call(el, value) : (el.value = value);
+        el.dispatchEvent(new Event('focus',  { bubbles: true }));
         el.dispatchEvent(new Event('input',  { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
-        // 再尝试通过 .el-input 包裹层的 Vue 实例 $emit 更新响应式状态
-        // （针对 input.__vue__ 为空、但父级 div.el-input 有 __vue__ 的情况）
+        el.dispatchEvent(new Event('blur',   { bubbles: true }));
+        // 通过 .el-input 包裹层的 Vue 实例 $emit 更新响应式状态
         const elInputDiv = isTA ? null : el.closest('.el-input');
         const elInputVm  = elInputDiv?.__vue__;
         if (elInputVm?.$emit) {
@@ -358,6 +362,15 @@ function pageFillerFn(profile) {
           elInputVm.$emit('change', value);
         }
         return true;
+      }
+
+      // ── 清除 el-form 验证错误（填完后消除红色提示）────────
+      function clearFormErrors() {
+        document.querySelectorAll('.el-form').forEach(f => {
+          if (f.__vue__?.clearValidate) f.__vue__.clearValidate();
+        });
+        // 同时移除已显示的 el-message 红色 toast
+        document.querySelectorAll('.el-message--error').forEach(m => m.remove());
       }
 
       // ── el-select 按 label 文字选中（精确优先，再回退模糊）
@@ -478,6 +491,8 @@ function pageFillerFn(profile) {
 
       // ── 点击当前表单的主保存按钮（添 加 / 保存 / 确定）─
       async function saveCur() {
+        clearFormErrors(); // 先清一次，避免旧错误干扰
+        await sleep(200);  // 等 Vue 完成响应式更新
         const btn = Array.from(document.querySelectorAll('button.el-button--primary'))
           .find(b => {
             const t = b.textContent.replace(/\s/g, '');
@@ -492,6 +507,7 @@ function pageFillerFn(profile) {
           if (!document.querySelector('button.el-button--primary.is-loading')) break;
         }
         await sleep(300);
+        clearFormErrors(); // 保存后再清一次残留红色提示
       }
 
       // ── 学历 / 学位 映射 ─────────────────────────────────
@@ -556,7 +572,7 @@ function pageFillerFn(profile) {
       if (edu) {
         console.log('[填表] edu=', JSON.stringify(edu));
         await openForEdit();
-        await sleep(800); // 等 Vue 组件挂载完毕再填
+        await sleep(1200); // 等 Vue 组件 + el-select 选项完全挂载
         // 只填空字段，不覆盖已有值
         const s0 = lastPh('学校全称');
         if (s0 && !s0.value.trim() && edu.school && edu.school !== '无') if (setNative(s0, edu.school)) filled++;

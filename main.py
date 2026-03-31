@@ -97,7 +97,10 @@ def normalize_profile(data: dict) -> dict:
 @app.post("/parse-resume")
 async def parse_resume(file: UploadFile = File(...)):
     file_bytes = await file.read()
-    resume_text = extract_text(file_bytes, file.filename)
+    try:
+        resume_text = extract_text(file_bytes, file.filename)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": f"文件解析失败: {type(e).__name__}: {e}"})
 
     prompt = f"""你是简历解析器，只输出JSON，不要有任何其他文字。
 
@@ -116,11 +119,14 @@ async def parse_resume(file: UploadFile = File(...)):
 简历内容：
 {resume_text}"""
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.1,
-    )
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+        )
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"status": "error", "message": f"AI接口错误: {e}"})
 
     raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
@@ -131,7 +137,7 @@ async def parse_resume(file: UploadFile = File(...)):
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        return {"status": "error", "message": f"JSON解析失败: {e}", "raw": raw[:300]}
+        return JSONResponse(status_code=422, content={"status": "error", "message": f"JSON解析失败: {e}", "raw": raw[:300]})
 
     data = normalize_profile(data)
     return {"status": "ok", "data": data}
