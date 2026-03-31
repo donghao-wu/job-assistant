@@ -36,14 +36,20 @@ app.add_middleware(
 )
 
 API_KEY = os.getenv("SILICONFLOW_API_KEY")
-TOKEN_METER_PORT = os.getenv("TOKEN_METER_PORT", "7070")
-BASE_URL = f"http://localhost:{TOKEN_METER_PORT}/job-app/v1"
+TOKEN_METER_PORT = os.getenv("TOKEN_METER_PORT", "")  # 空 = 直连 siliconflow
 MODEL = "deepseek-ai/DeepSeek-V3.2"
+
+if TOKEN_METER_PORT:
+    BASE_URL = f"http://localhost:{TOKEN_METER_PORT}/job-app/v1"
+    _extra_headers = {"x-upstream-base": "https://api.siliconflow.cn"}
+else:
+    BASE_URL = "https://api.siliconflow.cn/v1"
+    _extra_headers = {}
 
 client = OpenAI(
     api_key=API_KEY,
     base_url=BASE_URL,
-    default_headers={"x-upstream-base": "https://api.siliconflow.cn"},
+    default_headers=_extra_headers,
 )
 
 init_db()
